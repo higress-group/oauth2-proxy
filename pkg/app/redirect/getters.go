@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	requestutil "github.com/oauth2-proxy/oauth2-proxy/v7/pkg/requests/util"
+	requestutil "oidc/pkg/requests/util"
 )
 
 // redirectGetter represents a method to allow the proxy to determine a redirect

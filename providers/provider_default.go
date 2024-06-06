@@ -1,15 +1,13 @@
 package providers
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"net/url"
 
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/middleware"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/sessions"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/requests"
+	"oidc/pkg/apis/middleware"
+	"oidc/pkg/apis/sessions"
 )
 
 var (
@@ -64,41 +62,43 @@ func (p *ProviderData) Redeem(ctx context.Context, redirectURL, code, codeVerifi
 		params.Add("resource", p.ProtectedResource.String())
 	}
 
-	result := requests.New(p.RedeemURL.String()).
-		WithContext(ctx).
-		WithMethod("POST").
-		WithBody(bytes.NewBufferString(params.Encode())).
-		SetHeader("Content-Type", "application/x-www-form-urlencoded").
-		Do()
-	if result.Error() != nil {
-		return nil, result.Error()
-	}
+	//result := requests.New(p.RedeemURL.String()).
+	//	WithContext(ctx).
+	//	WithMethod("POST").
+	//	WithBody(bytes.NewBufferString(params.Encode())).
+	//	SetHeader("Content-Type", "application/x-www-form-urlencoded").
+	//	Do()
+	//if result.Error() != nil {
+	//	return nil, result.Error()
+	//}
+	//
+	//// blindly try json and x-www-form-urlencoded
+	//var jsonResponse struct {
+	//	AccessToken string `json:"access_token"`
+	//}
+	//err = result.UnmarshalInto(&jsonResponse)
+	//if err == nil {
+	//	return &sessions.SessionState{
+	//		AccessToken: jsonResponse.AccessToken,
+	//	}, nil
+	//}
+	//
+	//values, err := url.ParseQuery(string(result.Body()))
+	//if err != nil {
+	//	return nil, err
+	//}
+	//// TODO (@NickMeves): Uses OAuth `expires_in` to set an expiration
+	//if token := values.Get("access_token"); token != "" {
+	//	ss := &sessions.SessionState{
+	//		AccessToken: token,
+	//	}
+	//	ss.CreatedAtNow()
+	//	return ss, nil
+	//}
 
-	// blindly try json and x-www-form-urlencoded
-	var jsonResponse struct {
-		AccessToken string `json:"access_token"`
-	}
-	err = result.UnmarshalInto(&jsonResponse)
-	if err == nil {
-		return &sessions.SessionState{
-			AccessToken: jsonResponse.AccessToken,
-		}, nil
-	}
-
-	values, err := url.ParseQuery(string(result.Body()))
-	if err != nil {
-		return nil, err
-	}
-	// TODO (@NickMeves): Uses OAuth `expires_in` to set an expiration
-	if token := values.Get("access_token"); token != "" {
-		ss := &sessions.SessionState{
-			AccessToken: token,
-		}
-		ss.CreatedAtNow()
-		return ss, nil
-	}
-
-	return nil, fmt.Errorf("no access token found %s", result.Body())
+	//return nil, fmt.Errorf("no access token found %s", result.Body())
+	// TODO: check
+	return nil, fmt.Errorf("error")
 }
 
 // GetEmailAddress returns the Account email address

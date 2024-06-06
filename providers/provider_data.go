@@ -6,16 +6,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 
+	"oidc/pkg/apis/options"
+	"oidc/pkg/apis/sessions"
+	internaloidc "oidc/pkg/providers/oidc"
+	"oidc/pkg/providers/util"
+
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/options"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/sessions"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/logger"
-	internaloidc "github.com/oauth2-proxy/oauth2-proxy/v7/pkg/providers/oidc"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/providers/util"
 	"golang.org/x/oauth2"
 )
 
@@ -65,17 +64,10 @@ type ProviderData struct {
 func (p *ProviderData) Data() *ProviderData { return p }
 
 func (p *ProviderData) GetClientSecret() (clientSecret string, err error) {
-	if p.ClientSecret != "" || p.ClientSecretFile == "" {
+	if p.ClientSecret != "" {
 		return p.ClientSecret, nil
 	}
-
-	// Getting ClientSecret can fail in runtime so we need to report it without returning the file name to the user
-	fileClientSecret, err := os.ReadFile(p.ClientSecretFile)
-	if err != nil {
-		logger.Errorf("error reading client secret file %s: %s", p.ClientSecretFile, err)
-		return "", errors.New("could not read client secret file")
-	}
-	return string(fileClientSecret), nil
+	return "", errors.New("provider client secret is empty")
 }
 
 // LoginURLParams returns the parameter values that should be passed to the IdP
@@ -291,7 +283,7 @@ func (p *ProviderData) getClaimExtractor(rawIDToken, accessToken string) (util.C
 		profileURL = &url.URL{}
 	}
 
-	extractor, err := util.NewClaimExtractor(context.TODO(), rawIDToken, profileURL, p.getAuthorizationHeader(accessToken))
+	extractor, err := util.NewClaimExtractor(rawIDToken, profileURL, p.getAuthorizationHeader(accessToken))
 	if err != nil {
 		return nil, fmt.Errorf("could not initialise claim extractor: %v", err)
 	}

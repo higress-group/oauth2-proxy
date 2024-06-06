@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/options"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/sessions"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/clock"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/encryption"
-	"github.com/vmihailenco/msgpack/v5"
+	"oidc/pkg/apis/options"
+	"oidc/pkg/apis/sessions"
+
+	"encoding/json"
+	"oidc/pkg/clock"
+	"oidc/pkg/encryption"
 )
 
 // CSRF manages various nonces stored in the CSRF cookie during the initial
@@ -32,17 +33,17 @@ type csrf struct {
 	// OAuthState holds the OAuth2 state parameter's nonce component set in the
 	// initial authentication request and mirrored back in the callback
 	// redirect from the IdP for CSRF protection.
-	OAuthState []byte `msgpack:"s,omitempty"`
+	OAuthState []byte `json:"s,omitempty"`
 
 	// OIDCNonce holds the OIDC nonce parameter used in the initial authentication
 	// and then set in all subsequent OIDC ID Tokens as the nonce claim. This
 	// is used to mitigate replay attacks.
-	OIDCNonce []byte `msgpack:"n,omitempty"`
+	OIDCNonce []byte `json:"n,omitempty"`
 
 	// CodeVerifier holds the unobfuscated PKCE code verification string
 	// which is used to compare the code challenge when exchanging the
 	// authentication code.
-	CodeVerifier string `msgpack:"cv,omitempty"`
+	CodeVerifier string `json:"cv,omitempty"`
 
 	cookieOpts *options.Cookie
 	time       clock.Clock
@@ -161,7 +162,7 @@ func (c *csrf) ClearCookie(rw http.ResponseWriter, req *http.Request) {
 // encodeCookie MessagePack encodes and encrypts the CSRF and then creates a
 // signed cookie value
 func (c *csrf) encodeCookie() (string, error) {
-	packed, err := msgpack.Marshal(c)
+	packed, err := json.Marshal(c)
 	if err != nil {
 		return "", fmt.Errorf("error marshalling CSRF to msgpack: %v", err)
 	}
@@ -189,7 +190,7 @@ func decodeCSRFCookie(cookie *http.Cookie, opts *options.Cookie) (*csrf, error) 
 
 	// Valid cookie, Unmarshal the CSRF
 	csrf := &csrf{cookieOpts: opts}
-	err = msgpack.Unmarshal(decrypted, csrf)
+	err = json.Unmarshal(decrypted, csrf)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling data to CSRF: %v", err)
 	}

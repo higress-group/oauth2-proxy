@@ -1,7 +1,6 @@
 package util
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/bitly/go-simplejson"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/requests"
 	"github.com/ohler55/ojg/jp"
 	"github.com/spf13/cast"
 )
@@ -28,7 +26,7 @@ type ClaimExtractor interface {
 // NewClaimExtractor constructs a new ClaimExtractor from the raw ID Token.
 // If needed, it will use the profile URL to look up a claim if it isn't present
 // within the ID Token.
-func NewClaimExtractor(ctx context.Context, idToken string, profileURL *url.URL, profileRequestHeaders http.Header) (ClaimExtractor, error) {
+func NewClaimExtractor(idToken string, profileURL *url.URL, profileRequestHeaders http.Header) (ClaimExtractor, error) {
 	payload, err := parseJWT(idToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ID Token: %v", err)
@@ -40,7 +38,6 @@ func NewClaimExtractor(ctx context.Context, idToken string, profileURL *url.URL,
 	}
 
 	return &claimExtractor{
-		ctx:            ctx,
 		profileURL:     profileURL,
 		requestHeaders: profileRequestHeaders,
 		tokenClaims:    tokenClaims,
@@ -50,7 +47,6 @@ func NewClaimExtractor(ctx context.Context, idToken string, profileURL *url.URL,
 // claimExtractor implements the ClaimExtractor interface
 type claimExtractor struct {
 	profileURL     *url.URL
-	ctx            context.Context
 	requestHeaders map[string][]string
 	tokenClaims    *simplejson.Json
 	profileClaims  *simplejson.Json
@@ -95,16 +91,18 @@ func (c *claimExtractor) loadProfileClaims() (*simplejson.Json, error) {
 		return simplejson.New(), nil
 	}
 
-	claims, err := requests.New(c.profileURL.String()).
-		WithContext(c.ctx).
-		WithHeaders(c.requestHeaders).
-		Do().
-		UnmarshalSimpleJSON()
-	if err != nil {
-		return nil, fmt.Errorf("error making request to profile URL: %v", err)
-	}
-
-	return claims, nil
+	//claims, err := requests.New(c.profileURL.String()).
+	//	WithContext(c.ctx).
+	//	WithHeaders(c.requestHeaders).
+	//	Do().
+	//	UnmarshalSimpleJSON()
+	//if err != nil {
+	//	return nil, fmt.Errorf("error making request to profile URL: %v", err)
+	//}
+	//
+	//return claims, nil
+	// TODO: check
+	return nil, fmt.Errorf("error making request to profile URL")
 }
 
 // GetClaimInto loads a claim and places it into the destination interface.

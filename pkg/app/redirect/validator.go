@@ -2,12 +2,9 @@ package redirect
 
 import (
 	"net/url"
+	"oidc/pkg/util"
 	"regexp"
 	"strings"
-
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/logger"
-
-	util "github.com/oauth2-proxy/oauth2-proxy/v7/pkg/util"
 )
 
 var (
@@ -49,7 +46,7 @@ func (v *validator) IsValidRedirect(redirect string) bool {
 	case strings.HasPrefix(redirect, "http://") || strings.HasPrefix(redirect, "https://"):
 		redirectURL, err := url.Parse(redirect)
 		if err != nil {
-			logger.Printf("Rejecting invalid redirect %q: scheme unsupported or missing", redirect)
+			//logger.Printf("Rejecting invalid redirect %q: scheme unsupported or missing", redirect)
 			return false
 		}
 
@@ -57,10 +54,10 @@ func (v *validator) IsValidRedirect(redirect string) bool {
 			return true
 		}
 
-		logger.Printf("Rejecting invalid redirect %q: domain / port not in whitelist", redirect)
+		//logger.Printf("Rejecting invalid redirect %q: domain / port not in whitelist", redirect)
 		return false
 	default:
-		logger.Printf("Rejecting invalid redirect %q: not an absolute or relative URL", redirect)
+		//logger.Printf("Rejecting invalid redirect %q: not an absolute or relative URL", redirect)
 		return false
 	}
 }

@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"time"
 
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/options"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/sessions"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/logger"
+	"oidc/pkg/apis/options"
+	"oidc/pkg/apis/sessions"
+
 	"golang.org/x/oauth2"
 )
 
@@ -65,30 +64,30 @@ func (p *OIDCProvider) GetLoginURL(redirectURI, state, nonce string, extraParams
 
 // Redeem exchanges the OAuth2 authentication token for an ID token
 func (p *OIDCProvider) Redeem(ctx context.Context, redirectURL, code, codeVerifier string) (*sessions.SessionState, error) {
-	clientSecret, err := p.GetClientSecret()
-	if err != nil {
-		return nil, err
-	}
+	// clientSecret, err := p.GetClientSecret()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	var opts []oauth2.AuthCodeOption
-	if codeVerifier != "" {
-		opts = append(opts, oauth2.SetAuthURLParam("code_verifier", codeVerifier))
-	}
+	// var opts []oauth2.AuthCodeOption
+	// if codeVerifier != "" {
+	// 	opts = append(opts, oauth2.SetAuthURLParam("code_verifier", codeVerifier))
+	// }
 
-	c := oauth2.Config{
-		ClientID:     p.ClientID,
-		ClientSecret: clientSecret,
-		Endpoint: oauth2.Endpoint{
-			TokenURL: p.RedeemURL.String(),
-		},
-		RedirectURL: redirectURL,
-	}
-	token, err := c.Exchange(ctx, code, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("token exchange failed: %v", err)
-	}
+	// c := oauth2.Config{
+	// 	ClientID:     p.ClientID,
+	// 	ClientSecret: clientSecret,
+	// 	Endpoint: oauth2.Endpoint{
+	// 		TokenURL: p.RedeemURL.String(),
+	// 	},
+	// 	RedirectURL: redirectURL,
+	// }
+	// token, err := c.Exchange(ctx, code, opts...)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("token exchange failed: %v", err)
+	// }
 
-	return p.createSession(ctx, token, false)
+	return p.createSession(ctx, nil, false)
 }
 
 // EnrichSession is called after Redeem to allow providers to enrich session fields
@@ -105,7 +104,7 @@ func (p *OIDCProvider) EnrichSession(_ context.Context, s *sessions.SessionState
 func (p *OIDCProvider) ValidateSession(ctx context.Context, s *sessions.SessionState) bool {
 	_, err := p.Verifier.Verify(ctx, s.IDToken)
 	if err != nil {
-		logger.Errorf("id_token verification failed: %v", err)
+		//logger.Errorf("id_token verification failed: %v", err)
 		return false
 	}
 
@@ -114,7 +113,7 @@ func (p *OIDCProvider) ValidateSession(ctx context.Context, s *sessions.SessionS
 	}
 	err = p.checkNonce(s)
 	if err != nil {
-		logger.Errorf("nonce verification failed: %v", err)
+		//logger.Errorf("nonce verification failed: %v", err)
 		return false
 	}
 
@@ -127,61 +126,61 @@ func (p *OIDCProvider) RefreshSession(ctx context.Context, s *sessions.SessionSt
 		return false, nil
 	}
 
-	err := p.redeemRefreshToken(ctx, s)
-	if err != nil {
-		return false, fmt.Errorf("unable to redeem refresh token: %v", err)
-	}
+	// err := p.redeemRefreshToken(ctx, s)
+	// if err != nil {
+	// 	return false, fmt.Errorf("unable to redeem refresh token: %v", err)
+	// }
 
 	return true, nil
 }
 
 // redeemRefreshToken uses a RefreshToken with the RedeemURL to refresh the
 // Access Token and (probably) the ID Token.
-func (p *OIDCProvider) redeemRefreshToken(ctx context.Context, s *sessions.SessionState) error {
-	clientSecret, err := p.GetClientSecret()
-	if err != nil {
-		return err
-	}
+// func (p *OIDCProvider) redeemRefreshToken(ctx context.Context, s *sessions.SessionState) error {
+// 	clientSecret, err := p.GetClientSecret()
+// 	if err != nil {
+// 		return err
+// 	}
 
-	c := oauth2.Config{
-		ClientID:     p.ClientID,
-		ClientSecret: clientSecret,
-		Endpoint: oauth2.Endpoint{
-			TokenURL: p.RedeemURL.String(),
-		},
-	}
-	t := &oauth2.Token{
-		RefreshToken: s.RefreshToken,
-		Expiry:       time.Now().Add(-time.Hour),
-	}
-	token, err := c.TokenSource(ctx, t).Token()
-	if err != nil {
-		return fmt.Errorf("failed to get token: %v", err)
-	}
+// 	c := oauth2.Config{
+// 		ClientID:     p.ClientID,
+// 		ClientSecret: clientSecret,
+// 		Endpoint: oauth2.Endpoint{
+// 			TokenURL: p.RedeemURL.String(),
+// 		},
+// 	}
+// 	t := &oauth2.Token{
+// 		RefreshToken: s.RefreshToken,
+// 		Expiry:       time.Now().Add(-time.Hour),
+// 	}
+// 	token, err := c.TokenSource(ctx, t).Token()
+// 	if err != nil {
+// 		return fmt.Errorf("failed to get token: %v", err)
+// 	}
 
-	newSession, err := p.createSession(ctx, token, true)
-	if err != nil {
-		return fmt.Errorf("unable create new session state from response: %v", err)
-	}
+// 	newSession, err := p.createSession(ctx, token, true)
+// 	if err != nil {
+// 		return fmt.Errorf("unable create new session state from response: %v", err)
+// 	}
 
-	// It's possible that if the refresh token isn't in the token response the
-	// session will not contain an id token.
-	// If it doesn't it's probably better to retain the old one
-	if newSession.IDToken != "" {
-		s.IDToken = newSession.IDToken
-		s.Email = newSession.Email
-		s.User = newSession.User
-		s.Groups = newSession.Groups
-		s.PreferredUsername = newSession.PreferredUsername
-	}
+// 	// It's possible that if the refresh token isn't in the token response the
+// 	// session will not contain an id token.
+// 	// If it doesn't it's probably better to retain the old one
+// 	if newSession.IDToken != "" {
+// 		s.IDToken = newSession.IDToken
+// 		s.Email = newSession.Email
+// 		s.User = newSession.User
+// 		s.Groups = newSession.Groups
+// 		s.PreferredUsername = newSession.PreferredUsername
+// 	}
 
-	s.AccessToken = newSession.AccessToken
-	s.RefreshToken = newSession.RefreshToken
-	s.CreatedAt = newSession.CreatedAt
-	s.ExpiresOn = newSession.ExpiresOn
+// 	s.AccessToken = newSession.AccessToken
+// 	s.RefreshToken = newSession.RefreshToken
+// 	s.CreatedAt = newSession.CreatedAt
+// 	s.ExpiresOn = newSession.ExpiresOn
 
-	return nil
-}
+// 	return nil
+// }
 
 // CreateSessionFromToken converts Bearer IDTokens into sessions
 func (p *OIDCProvider) CreateSessionFromToken(ctx context.Context, token string) (*sessions.SessionState, error) {

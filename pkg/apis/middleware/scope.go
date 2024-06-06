@@ -3,8 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
-
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/sessions"
+	"oidc/pkg/apis/sessions"
 )
 
 type scopeKey string
@@ -38,9 +37,6 @@ type RequestScope struct {
 	// SessionRevalidated indicates whether the session has been revalidated since
 	// it was loaded or not.
 	SessionRevalidated bool
-
-	// Upstream tracks which upstream was used for this request
-	Upstream string
 }
 
 // GetRequestScope returns the current request scope from the given request

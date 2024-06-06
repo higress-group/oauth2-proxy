@@ -4,9 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/url"
-
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/logger"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/requests"
 )
 
 // stripToken is a helper function to obfuscate "access_token"
@@ -24,14 +21,14 @@ func stripToken(endpoint string) string {
 func stripParam(param, endpoint string) string {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		logger.Errorf("error attempting to strip %s: %s", param, err)
+		// logger.Errorf("error attempting to strip %s: %s", param, err)
 		return endpoint
 	}
 
 	if u.RawQuery != "" {
 		values, err := url.ParseQuery(u.RawQuery)
 		if err != nil {
-			logger.Errorf("error attempting to strip %s: %s", param, err)
+			// logger.Errorf("error attempting to strip %s: %s", param, err)
 			return u.String()
 		}
 
@@ -60,22 +57,22 @@ func validateToken(ctx context.Context, p Provider, accessToken string, header h
 		}
 	}
 
-	result := requests.New(endpoint).
-		WithContext(ctx).
-		WithHeaders(header).
-		Do()
-	if result.Error() != nil {
-		logger.Errorf("GET %s", stripToken(endpoint))
-		logger.Errorf("token validation request failed: %s", result.Error())
-		return false
-	}
+	// result := requests.New(endpoint).
+	// 	WithContext(ctx).
+	// 	WithHeaders(header).
+	// 	Do()
+	// if result.Error() != nil {
+	// 	// logger.Errorf("GET %s", stripToken(endpoint))
+	// 	// logger.Errorf("token validation request failed: %s", result.Error())
+	// 	return false
+	// }
 
-	logger.Printf("%d GET %s %s", result.StatusCode(), stripToken(endpoint), result.Body())
+	// // logger.Printf("%d GET %s %s", result.StatusCode(), stripToken(endpoint), result.Body())
 
-	if result.StatusCode() == 200 {
-		return true
-	}
-	logger.Errorf("token validation request failed: status %d - %s", result.StatusCode(), result.Body())
+	// if result.StatusCode() == 200 {
+	// 	return true
+	// }
+	// logger.Errorf("token validation request failed: status %d - %s", result.StatusCode(), result.Body())
 	return false
 }
 

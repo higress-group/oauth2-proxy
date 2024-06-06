@@ -1,152 +1,92 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"runtime"
+	"net/http"
+	"net/url"
+	"oidc/pkg/apis/options"
+	"oidc/pkg/util"
+	"oidc/pkg/validation"
+	"strings"
 
-	"github.com/ghodss/yaml"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/options"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/logger"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/validation"
-	"github.com/spf13/pflag"
+	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
+	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
+	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/tidwall/gjson"
 )
 
+// MyResponseWriter 是一个自定义的 ResponseWriter
+// 它嵌入 http.ResponseWriter 接口，并且可以增加其他成员
+type MyResponseWriter struct {
+	http.ResponseWriter
+	StatusCode int // 用于记录状态码
+}
+
 func main() {
-	logger.SetFlags(logger.Lshortfile)
+	wrapper.SetCtx(
+		// 插件名称
+		"oidc",
+		// 为解析插件配置，设置自定义函数
+		wrapper.ParseConfigBy(parseConfig),
+		// 为处理请求头，设置自定义函数
+		wrapper.ProcessRequestHeadersBy(onHttpRequestHeaders),
+	)
+}
 
-	configFlagSet := pflag.NewFlagSet("oauth2-proxy", pflag.ContinueOnError)
+type OidcConfig struct {
+	Options     *options.Options
+	OidcHandler *OAuthProxy
+	Client      wrapper.HttpClient
+}
 
-	// Because we parse early to determine alpha vs legacy config, we have to
-	// ignore any unknown flags for now
-	configFlagSet.ParseErrorsWhitelist.UnknownFlags = true
-
-	config := configFlagSet.String("config", "", "path to config file")
-	alphaConfig := configFlagSet.String("alpha-config", "", "path to alpha config file (use at your own risk - the structure in this config file may change between minor releases)")
-	convertConfig := configFlagSet.Bool("convert-config-to-alpha", false, "if true, the proxy will load configuration as normal and convert existing configuration to the alpha config structure, and print it to stdout")
-	showVersion := configFlagSet.Bool("version", false, "print version string")
-	configFlagSet.Parse(os.Args[1:])
-
-	if *showVersion {
-		fmt.Printf("oauth2-proxy %s (built with %s)\n", VERSION, runtime.Version())
-		return
-	}
-
-	if *convertConfig && *alphaConfig != "" {
-		logger.Fatal("cannot use alpha-config and convert-config-to-alpha together")
-	}
-
-	opts, err := loadConfiguration(*config, *alphaConfig, configFlagSet, os.Args[1:])
+// 在控制台插件配置中填写的yaml配置会自动转换为json，此处直接从json这个参数里解析配置即可
+func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
+	opts, err := options.LoadOptions(json)
 	if err != nil {
-		logger.Fatalf("ERROR: %v", err)
-	}
-
-	if *convertConfig {
-		if err := printConvertedConfig(opts); err != nil {
-			logger.Fatalf("ERROR: could not convert config: %v", err)
-		}
-		return
+		return err
 	}
 
 	if err = validation.Validate(opts); err != nil {
-		logger.Fatalf("%s", err)
+		return err
 	}
 
-	validator := NewValidator(opts.EmailDomains, opts.AuthenticatedEmailsFile)
-	oauthproxy, err := NewOAuthProxy(opts, validator)
+	config.Options = opts
+	validator := func(string) bool { return true }
+	oauthproxy, err := NewOAuthProxy(opts, validator, &log)
 	if err != nil {
-		logger.Fatalf("ERROR: Failed to initialise OAuth2 Proxy: %v", err)
+		return err
 	}
-
-	if err := oauthproxy.Start(); err != nil {
-		logger.Fatalf("ERROR: Failed to start OAuth2 Proxy: %v", err)
-	}
-}
-
-// loadConfiguration will load in the user's configuration.
-// It will either load the alpha configuration (if alphaConfig is given)
-// or the legacy configuration.
-func loadConfiguration(config, alphaConfig string, extraFlags *pflag.FlagSet, args []string) (*options.Options, error) {
-	if alphaConfig != "" {
-		logger.Printf("WARNING: You are using alpha configuration. The structure in this configuration file may change without notice. You MUST remove conflicting options from your existing configuration.")
-		return loadAlphaOptions(config, alphaConfig, extraFlags, args)
-	}
-	return loadLegacyOptions(config, extraFlags, args)
-}
-
-// loadLegacyOptions loads the old toml options using the legacy flagset
-// and legacy options struct.
-func loadLegacyOptions(config string, extraFlags *pflag.FlagSet, args []string) (*options.Options, error) {
-	optionsFlagSet := options.NewLegacyFlagSet()
-	optionsFlagSet.AddFlagSet(extraFlags)
-	if err := optionsFlagSet.Parse(args); err != nil {
-		return nil, fmt.Errorf("failed to parse flags: %v", err)
-	}
-
-	legacyOpts := options.NewLegacyOptions()
-	if err := options.Load(config, optionsFlagSet, legacyOpts); err != nil {
-		return nil, fmt.Errorf("failed to load config: %v", err)
-	}
-
-	opts, err := legacyOpts.ToOptions()
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert config: %v", err)
-	}
-
-	return opts, nil
-}
-
-// loadAlphaOptions loads the old style config excluding options converted to
-// the new alpha format, then merges the alpha options, loaded from YAML,
-// into the core configuration.
-func loadAlphaOptions(config, alphaConfig string, extraFlags *pflag.FlagSet, args []string) (*options.Options, error) {
-	opts, err := loadOptions(config, extraFlags, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load core options: %v", err)
-	}
-
-	alphaOpts := &options.AlphaOptions{}
-	if err := options.LoadYAML(alphaConfig, alphaOpts); err != nil {
-		return nil, fmt.Errorf("failed to load alpha options: %v", err)
-	}
-
-	alphaOpts.MergeInto(opts)
-	return opts, nil
-}
-
-// loadOptions loads the configuration using the old style format into the
-// core options.Options struct.
-// This means that none of the options that have been converted to alpha config
-// will be loaded using this method.
-func loadOptions(config string, extraFlags *pflag.FlagSet, args []string) (*options.Options, error) {
-	optionsFlagSet := options.NewFlagSet()
-	optionsFlagSet.AddFlagSet(extraFlags)
-	if err := optionsFlagSet.Parse(args); err != nil {
-		return nil, fmt.Errorf("failed to parse flags: %v", err)
-	}
-
-	opts := options.NewOptions()
-	if err := options.Load(config, optionsFlagSet, opts); err != nil {
-		return nil, fmt.Errorf("failed to load config: %v", err)
-	}
-
-	return opts, nil
-}
-
-// printConvertedConfig extracts alpha options from the loaded configuration
-// and renders these to stdout in YAML format.
-func printConvertedConfig(opts *options.Options) error {
-	alphaConfig := &options.AlphaOptions{}
-	alphaConfig.ExtractFrom(opts)
-
-	data, err := yaml.Marshal(alphaConfig)
-	if err != nil {
-		return fmt.Errorf("unable to marshal config: %v", err)
-	}
-
-	if _, err := os.Stdout.Write(data); err != nil {
-		return fmt.Errorf("unable to write output: %v", err)
-	}
-
+	config.OidcHandler = oauthproxy
 	return nil
+}
+
+func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrapper.Log) types.Action {
+	log.Debugf("otps service: %v", config.Options.Service)
+	headers, _ := proxywasm.GetHttpRequestHeaders()
+
+	var method, path string
+	for _, header := range headers {
+		switch header[0] {
+		case ":method":
+			method = header[1]
+		case ":path":
+			path = header[1]
+		}
+	}
+	parsedURL, _ := url.Parse(path)
+
+	req := &http.Request{
+		Method: method,
+		URL:    parsedURL,
+		Header: make(http.Header),
+		Body:   nil,
+	}
+
+	for _, header := range headers {
+		if !strings.HasPrefix(header[0], ":") {
+			req.Header.Add(header[0], header[1])
+		}
+	}
+	rw := util.NewRecorder()
+	config.OidcHandler.serveMux.ServeHTTP(rw, req)
+	return types.ActionContinue
 }

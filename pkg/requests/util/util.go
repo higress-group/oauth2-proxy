@@ -2,8 +2,7 @@ package util
 
 import (
 	"net/http"
-
-	middlewareapi "github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/middleware"
+	middlewareapi "oidc/pkg/apis/middleware"
 )
 
 const (
@@ -51,6 +50,7 @@ func IsProxied(req *http.Request) bool {
 		return false
 	}
 	return scope.ReverseProxy
+	return false
 }
 
 func IsForwardedRequest(req *http.Request) bool {

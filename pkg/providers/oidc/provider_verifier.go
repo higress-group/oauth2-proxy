@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	k8serrors "k8s.io/apimachinery/pkg/util/errors"
+	// k8serrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 // ProviderVerifier represents the OIDC discovery and verification process
@@ -62,9 +62,9 @@ func (p ProviderVerifierOptions) validate() error {
 		errs = append(errs, errors.New("missing required setting: jwks-url"))
 	}
 
-	if len(errs) > 0 {
-		return k8serrors.NewAggregate(errs)
-	}
+	// if len(errs) > 0 {
+	// 	return k8serrors.NewAggregate(errs)
+	// } TODO: check
 	return nil
 }
 
@@ -115,10 +115,10 @@ func NewProviderVerifier(ctx context.Context, opts ProviderVerifierOptions) (Pro
 type verifierBuilder func(*oidc.Config) *oidc.IDTokenVerifier
 
 func getVerifierBuilder(ctx context.Context, opts ProviderVerifierOptions) (verifierBuilder, DiscoveryProvider, error) {
-	if opts.SkipDiscovery {
-		// Instead of discovering the JWKs URK, it needs to be specified in the opts already
-		return newVerifierBuilder(ctx, opts.IssuerURL, opts.JWKsURL, opts.SupportedSigningAlgs), nil, nil
-	}
+	// if opts.SkipDiscovery {
+	// 	// Instead of discovering the JWKs URK, it needs to be specified in the opts already
+	// 	return newVerifierBuilder(ctx, opts.IssuerURL, opts.JWKsURL, opts.SupportedSigningAlgs), nil, nil
+	// }
 
 	provider, err := NewProvider(ctx, opts.IssuerURL, opts.SkipIssuerVerification)
 	if err != nil {

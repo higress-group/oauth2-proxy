@@ -8,11 +8,10 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/options"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/apis/sessions"
-	pkgcookies "github.com/oauth2-proxy/oauth2-proxy/v7/pkg/cookies"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/encryption"
-	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/logger"
+	"oidc/pkg/apis/options"
+	"oidc/pkg/apis/sessions"
+	pkgcookies "oidc/pkg/cookies"
+	"oidc/pkg/encryption"
 )
 
 const (
@@ -167,8 +166,7 @@ func splitCookie(c *http.Cookie) []*http.Cookie {
 		return []*http.Cookie{c}
 	}
 
-	logger.Errorf("WARNING: Multiple cookies are required for this session as it exceeds the 4kb cookie limit. Please use server side session storage (eg. Redis) instead.")
-
+	// logger.Errorf("WARNING: Multiple cookies are required for this session as it exceeds the 4kb cookie limit. Please use server side session storage (eg. Redis) instead.")
 	cookies := []*http.Cookie{}
 	valueBytes := []byte(c.Value)
 	count := 0
