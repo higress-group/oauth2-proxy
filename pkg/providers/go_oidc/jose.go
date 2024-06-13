@@ -1,6 +1,6 @@
-package oidc
+package go_oidc
 
-import "github.com/go-jose/go-jose/v4"
+import jose "github.com/go-jose/go-jose/v4"
 
 // JOSE asymmetric signing algorithm values as defined by RFC 7518
 //

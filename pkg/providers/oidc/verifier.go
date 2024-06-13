@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/coreos/go-oidc/v3/oidc"
+	oidc "oidc/pkg/providers/go_oidc"
 )
 
 // idTokenVerifier allows an ID Token to be verified against the issue and provided keys.
 type IDTokenVerifier interface {
 	Verify(context.Context, string) (*oidc.IDToken, error)
+	GetKeySet() *oidc.KeySet
 }
 
 // idTokenVerifier Used to verify an ID Token and extends oidc.idTokenVerifier from the underlying oidc library
@@ -106,4 +107,8 @@ func (v *idTokenVerifier) interfaceSliceToString(slice interface{}) []string {
 		strings = append(strings, s.Index(i).Interface().(string))
 	}
 	return strings
+}
+
+func (v *idTokenVerifier) GetKeySet() *oidc.KeySet {
+	return &v.verifier.KeySet
 }

@@ -2,11 +2,18 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
+	"strings"
 
 	"oidc/pkg/apis/options"
 	"oidc/pkg/apis/sessions"
+	internaloidc "oidc/pkg/providers/oidc"
+	"oidc/pkg/providers/util"
+
+	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 )
 
 const (
@@ -41,6 +48,53 @@ func NewProvider(providerConfig options.Provider) (Provider, error) {
 	}
 }
 
+func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, client wrapper.HttpClient, log *wrapper.Log) error {
+
+	needsVerifier, err := providerRequiresOIDCProviderVerifier(providerConfig.Type)
+	if err != nil {
+		return err
+	}
+	if needsVerifier {
+		verifierOptions := internaloidc.ProviderVerifierOptions{
+			AudienceClaims:         providerConfig.OIDCConfig.AudienceClaims,
+			ClientID:               providerConfig.ClientID,
+			ExtraAudiences:         providerConfig.OIDCConfig.ExtraAudiences,
+			IssuerURL:              providerConfig.OIDCConfig.IssuerURL,
+			JWKsURL:                providerConfig.OIDCConfig.JwksURL,
+			SkipDiscovery:          providerConfig.OIDCConfig.SkipDiscovery,
+			SkipIssuerVerification: providerConfig.OIDCConfig.InsecureSkipIssuerVerification,
+		}
+
+		var providerJson internaloidc.ProviderJSON
+		requestURL := strings.TrimSuffix(verifierOptions.IssuerURL, "/") + "/.well-known/openid-configuration"
+		client.Get(requestURL, nil, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
+			if statusCode != http.StatusOK {
+				log.Errorf("openid-configuration http call failed, status: %d", statusCode)
+				return
+			}
+			json.Unmarshal(responseBody, &providerJson)
+			pv, _ := internaloidc.NewProviderVerifier(context.TODO(), verifierOptions, providerJson)
+			p.Verifier = pv.Verifier()
+			if pv.DiscoveryEnabled() {
+				// Use the discovered values rather than any specified values
+				endpoints := pv.Provider().Endpoints()
+				pkce := pv.Provider().PKCE()
+				providerConfig.LoginURL = endpoints.AuthURL
+				providerConfig.RedeemURL = endpoints.TokenURL
+				providerConfig.ProfileURL = endpoints.UserInfoURL
+				providerConfig.OIDCConfig.JwksURL = endpoints.JWKsURL
+				p.SupportedCodeChallengeMethods = pkce.CodeChallengeAlgs
+			}
+			providerConfigInfoCheck(providerConfig, p)
+			log.Debugf("set provider data : %v", p)
+			(*p.Verifier.GetKeySet()).UpdateKeys(client, log)
+		}, 2000)
+		return nil
+	}
+	errs := providerConfigInfoCheck(providerConfig, p)
+	return util.NewAggregate(errs)
+}
+
 func newProviderDataFromConfig(providerConfig options.Provider) (*ProviderData, error) {
 	p := &ProviderData{
 		Scope:            providerConfig.Scope,
@@ -49,61 +103,12 @@ func newProviderDataFromConfig(providerConfig options.Provider) (*ProviderData, 
 		ClientSecretFile: providerConfig.ClientSecretFile,
 	}
 
-	// needsVerifier, err := providerRequiresOIDCProviderVerifier(providerConfig.Type)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// if needsVerifier {
-	// 	pv, err := internaloidc.NewProviderVerifier(context.TODO(), internaloidc.ProviderVerifierOptions{
-	// 		AudienceClaims:         providerConfig.OIDCConfig.AudienceClaims,
-	// 		ClientID:               providerConfig.ClientID,
-	// 		ExtraAudiences:         providerConfig.OIDCConfig.ExtraAudiences,
-	// 		IssuerURL:              providerConfig.OIDCConfig.IssuerURL,
-	// 		JWKsURL:                providerConfig.OIDCConfig.JwksURL,
-	// 		SkipDiscovery:          providerConfig.OIDCConfig.SkipDiscovery,
-	// 		SkipIssuerVerification: providerConfig.OIDCConfig.InsecureSkipIssuerVerification,
-	// 	})
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("error building OIDC ProviderVerifier: %v", err)
-	// 	}
-
-	// 	p.Verifier = pv.Verifier()
-	// 	if pv.DiscoveryEnabled() {
-	// 		// Use the discovered values rather than any specified values
-	// 		endpoints := pv.Provider().Endpoints()
-	// 		pkce := pv.Provider().PKCE()
-	// 		providerConfig.LoginURL = endpoints.AuthURL
-	// 		providerConfig.RedeemURL = endpoints.TokenURL
-	// 		providerConfig.ProfileURL = endpoints.UserInfoURL
-	// 		providerConfig.OIDCConfig.JwksURL = endpoints.JWKsURL
-	// 		p.SupportedCodeChallengeMethods = pkce.CodeChallengeAlgs
-	// 	}
-	// }
-
-	errs := []error{}
-	for name, u := range map[string]struct {
-		dst **url.URL
-		raw string
-	}{
-		"login":    {dst: &p.LoginURL, raw: providerConfig.LoginURL},
-		"redeem":   {dst: &p.RedeemURL, raw: providerConfig.RedeemURL},
-		"profile":  {dst: &p.ProfileURL, raw: providerConfig.ProfileURL},
-		"validate": {dst: &p.ValidateURL, raw: providerConfig.ValidateURL},
-		"resource": {dst: &p.ProtectedResource, raw: providerConfig.ProtectedResource},
-	} {
-		var err error
-		*u.dst, err = url.Parse(u.raw)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("could not parse %s URL: %v", name, err))
-		}
-	}
+	errs := providerConfigInfoCheck(providerConfig, p)
 	// handle LoginURLParameters
 	errs = append(errs, p.compileLoginParams(providerConfig.LoginURLParameters)...)
 
 	if len(errs) > 0 {
-		// return nil, k8serrors.NewAggregate(errs)
-		return nil, nil
+		return nil, util.NewAggregate(errs)
 	}
 
 	// Make the OIDC options available to all providers that support it
@@ -158,4 +163,25 @@ func providerRequiresOIDCProviderVerifier(providerType options.ProviderType) (bo
 	default:
 		return false, fmt.Errorf("unknown provider type: %s", providerType)
 	}
+}
+
+func providerConfigInfoCheck(providerConfig options.Provider, p *ProviderData) []error {
+	errs := []error{}
+	for name, u := range map[string]struct {
+		dst **url.URL
+		raw string
+	}{
+		"login":    {dst: &p.LoginURL, raw: providerConfig.LoginURL},
+		"redeem":   {dst: &p.RedeemURL, raw: providerConfig.RedeemURL},
+		"profile":  {dst: &p.ProfileURL, raw: providerConfig.ProfileURL},
+		"validate": {dst: &p.ValidateURL, raw: providerConfig.ValidateURL},
+		"resource": {dst: &p.ProtectedResource, raw: providerConfig.ProtectedResource},
+	} {
+		var err error
+		*u.dst, err = url.Parse(u.raw)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("could not parse %s URL: %v", name, err))
+		}
+	}
+	return errs
 }

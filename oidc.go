@@ -22,6 +22,7 @@ import (
 
 	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 	"github.com/gorilla/mux"
+	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
 	"github.com/justinas/alice"
 )
 
@@ -237,8 +238,12 @@ func (p *OAuthProxy) doOAuthStart(rw http.ResponseWriter, req *http.Request, ove
 		p.logger.Errorf("Error setting CSRF cookie: %v", err)
 		return
 	}
-	fmt.Println(loginURL)
-	// http.Redirect(rw, req, loginURL, http.StatusFound)
+	headersMap := [][2]string{{"Location", loginURL}}
+	for key, value := range rw.Header() {
+		headersMap = append(headersMap, [2]string{key, strings.Join(value, ",")})
+	}
+	fmt.Println(headersMap)
+	proxywasm.SendHttpResponse(http.StatusFound, headersMap, nil, -1)
 }
 
 // getOAuthRedirectURI returns the redirectURL that the upstream OAuth Provider will
@@ -274,84 +279,79 @@ func (p *OAuthProxy) OAuthCallback(rw http.ResponseWriter, req *http.Request) {
 	// finish the oauth cycle
 	err := req.ParseForm()
 	if err != nil {
-		//logger.Errorf("Error while parsing OAuth2 callback: %v", err)
-		// p.ErrorPage(rw, req, http.StatusInternalServerError, err.Error())
+		p.logger.Errorf("Error while parsing OAuth2 callback: %v", err)
 		return
 	}
 	errorString := req.Form.Get("error")
 	if errorString != "" {
-		//logger.Errorf("Error while parsing OAuth2 callback: %s", errorString)
-		// message := fmt.Sprintf("Login Failed: The upstream identity provider returned an error: %s", errorString)
-		// Set the debug message and override the non debug message to be the same for this case
-		// p.ErrorPage(rw, req, http.StatusForbidden, message, message)
+		p.logger.Errorf("Error while parsing OAuth2 callback: %s", errorString)
 		return
 	}
 
 	csrf, err := cookies.LoadCSRFCookie(req, p.CookieOptions)
 	if err != nil {
-		//logger.Println(req, logger.AuthFailure, "Invalid authentication via OAuth2. Error while loading CSRF cookie:", err.Error())
-		// p.ErrorPage(rw, req, http.StatusForbidden, err.Error(), "Login Failed: Unable to find a valid CSRF token. Please try again.")
+		p.logger.Errorf("Invalid authentication via OAuth2. Error while loading CSRF cookie: %v", err)
 		return
 	}
+	fmt.Printf("[DEBUG] csrf : %+v", csrf)
+	// session, err := p.redeemCode(req, csrf.GetCodeVerifier())
+	// if err != nil {
+	// 	//logger.Errorf("Error redeeming code during OAuth2 callback: %v", err)
+	// 	// p.ErrorPage(rw, req, http.StatusInternalServerError, err.Error())
+	// 	return
+	// }
 
-	session, err := p.redeemCode(req, csrf.GetCodeVerifier())
-	if err != nil {
-		//logger.Errorf("Error redeeming code during OAuth2 callback: %v", err)
-		// p.ErrorPage(rw, req, http.StatusInternalServerError, err.Error())
-		return
-	}
+	// err = p.enrichSessionState(req.Context(), session)
+	// if err != nil {
+	// 	//logger.Errorf("Error creating session during OAuth2 callback: %v", err)
+	// 	// p.ErrorPage(rw, req, http.StatusInternalServerError, err.Error())
+	// 	return
+	// }
 
-	err = p.enrichSessionState(req.Context(), session)
-	if err != nil {
-		//logger.Errorf("Error creating session during OAuth2 callback: %v", err)
-		// p.ErrorPage(rw, req, http.StatusInternalServerError, err.Error())
-		return
-	}
+	// csrf.ClearCookie(rw, req)
 
-	csrf.ClearCookie(rw, req)
+	// nonce, appRedirect, err := decodeState(req.Form.Get("state"), p.encodeState)
+	// if err != nil {
+	// 	//logger.Errorf("Error while parsing OAuth2 state: %v", err)
+	// 	// p.ErrorPage(rw, req, http.StatusInternalServerError, err.Error())
+	// 	return
+	// }
 
-	nonce, appRedirect, err := decodeState(req.Form.Get("state"), p.encodeState)
-	if err != nil {
-		//logger.Errorf("Error while parsing OAuth2 state: %v", err)
-		// p.ErrorPage(rw, req, http.StatusInternalServerError, err.Error())
-		return
-	}
+	// if !csrf.CheckOAuthState(nonce) {
+	// 	//logger.PrintAuthf(session.Email, req, logger.AuthFailure, "Invalid authentication via OAuth2: CSRF token mismatch, potential attack")
+	// 	// p.ErrorPage(rw, req, http.StatusForbidden, "CSRF token mismatch, potential attack", "Login Failed: Unable to find a valid CSRF token. Please try again.")
+	// 	return
+	// }
 
-	if !csrf.CheckOAuthState(nonce) {
-		//logger.PrintAuthf(session.Email, req, logger.AuthFailure, "Invalid authentication via OAuth2: CSRF token mismatch, potential attack")
-		// p.ErrorPage(rw, req, http.StatusForbidden, "CSRF token mismatch, potential attack", "Login Failed: Unable to find a valid CSRF token. Please try again.")
-		return
-	}
+	// csrf.SetSessionNonce(session)
+	// if !p.provider.ValidateSession(req.Context(), session) {
+	// 	//logger.PrintAuthf(session.Email, req, logger.AuthFailure, "Session validation failed: %s", session)
+	// 	// p.ErrorPage(rw, req, http.StatusForbidden, "Session validation failed")
+	// 	return
+	// }
 
-	csrf.SetSessionNonce(session)
-	if !p.provider.ValidateSession(req.Context(), session) {
-		//logger.PrintAuthf(session.Email, req, logger.AuthFailure, "Session validation failed: %s", session)
-		// p.ErrorPage(rw, req, http.StatusForbidden, "Session validation failed")
-		return
-	}
+	// if !p.redirectValidator.IsValidRedirect(appRedirect) {
+	// 	appRedirect = "/"
+	// }
 
-	if !p.redirectValidator.IsValidRedirect(appRedirect) {
-		appRedirect = "/"
-	}
-
-	// set cookie, or deny
-	authorized, err := p.provider.Authorize(req.Context(), session)
-	if err != nil {
-		//logger.Errorf("Error with authorization: %v", err)
-	}
-	if p.Validator(session.Email) && authorized {
-		//logger.PrintAuthf(session.Email, req, logger.AuthSuccess, "Authenticated via OAuth2: %s", session)
-		err := p.SaveSession(rw, req, session)
-		if err != nil {
-			//logger.Errorf("Error saving session state for %s: %v", remoteAddr, err)
-			// p.ErrorPage(rw, req, http.StatusInternalServerError, err.Error())
-			return
-		}
-		//http.Redirect(rw, req, appRedirect, http.StatusFound)
-	} else {
-		//logger.PrintAuthf(session.Email, req, logger.AuthFailure, "Invalid authentication via OAuth2: unauthorized")
-		// p.ErrorPage(rw, req, http.StatusForbidden, "Invalid session: unauthorized")
-	}
+	// // set cookie, or deny
+	// authorized, err := p.provider.Authorize(req.Context(), session)
+	// if err != nil {
+	// 	//logger.Errorf("Error with authorization: %v", err)
+	// }
+	// if p.Validator(session.Email) && authorized {
+	// 	//logger.PrintAuthf(session.Email, req, logger.AuthSuccess, "Authenticated via OAuth2: %s", session)
+	// 	err := p.SaveSession(rw, req, session)
+	// 	if err != nil {
+	// 		//logger.Errorf("Error saving session state for %s: %v", remoteAddr, err)
+	// 		// p.ErrorPage(rw, req, http.StatusInternalServerError, err.Error())
+	// 		return
+	// 	}
+	// 	//http.Redirect(rw, req, appRedirect, http.StatusFound)
+	// } else {
+	// 	//logger.PrintAuthf(session.Email, req, logger.AuthFailure, "Invalid authentication via OAuth2: unauthorized")
+	// 	// p.ErrorPage(rw, req, http.StatusForbidden, "Invalid session: unauthorized")
+	// }
 }
 
 // Proxy proxies the user request if the user is authenticated else it prompts

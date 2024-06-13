@@ -32,7 +32,7 @@ func (s *Service) NewService() (wrapper.HttpClient, error) {
 			return nil, errors.New("missing service_domain in config")
 		}
 		Client := wrapper.NewClusterClient(&wrapper.DnsCluster{
-			ServiceName: s.ServiceDomain,
+			ServiceName: s.ServiceName,
 			Port:        s.ServicePort,
 			Domain:      s.ServiceDomain,
 		})

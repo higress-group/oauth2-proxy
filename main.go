@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"oidc/pkg/apis/options"
 	"oidc/pkg/util"
 	"oidc/pkg/validation"
+	"oidc/providers"
 	"strings"
 
 	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
@@ -35,7 +37,6 @@ func main() {
 type OidcConfig struct {
 	Options     *options.Options
 	OidcHandler *OAuthProxy
-	Client      wrapper.HttpClient
 }
 
 // 在控制台插件配置中填写的yaml配置会自动转换为json，此处直接从json这个参数里解析配置即可
@@ -56,11 +57,14 @@ func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
 		return err
 	}
 	config.OidcHandler = oauthproxy
+
+	wrapper.RegisteTickFunc(86400000, func() {
+		providers.NewVerifierFromConfig(config.Options.Providers[0], config.OidcHandler.provider.Data(), config.OidcHandler.client, &log)
+	})
 	return nil
 }
 
 func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrapper.Log) types.Action {
-	log.Debugf("otps service: %v", config.Options.Service)
 	headers, _ := proxywasm.GetHttpRequestHeaders()
 
 	var method, path string
@@ -81,12 +85,15 @@ func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrappe
 		Body:   nil,
 	}
 
+	fmt.Printf("[DEBUG] headers", headers)
 	for _, header := range headers {
 		if !strings.HasPrefix(header[0], ":") {
 			req.Header.Add(header[0], header[1])
 		}
 	}
 	rw := util.NewRecorder()
+
 	config.OidcHandler.serveMux.ServeHTTP(rw, req)
-	return types.ActionContinue
+
+	return types.ActionPause
 }

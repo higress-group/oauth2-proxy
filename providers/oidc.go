@@ -64,30 +64,30 @@ func (p *OIDCProvider) GetLoginURL(redirectURI, state, nonce string, extraParams
 
 // Redeem exchanges the OAuth2 authentication token for an ID token
 func (p *OIDCProvider) Redeem(ctx context.Context, redirectURL, code, codeVerifier string) (*sessions.SessionState, error) {
-	// clientSecret, err := p.GetClientSecret()
-	// if err != nil {
-	// 	return nil, err
-	// }
+	clientSecret, err := p.GetClientSecret()
+	if err != nil {
+		return nil, err
+	}
 
-	// var opts []oauth2.AuthCodeOption
-	// if codeVerifier != "" {
-	// 	opts = append(opts, oauth2.SetAuthURLParam("code_verifier", codeVerifier))
-	// }
+	var opts []oauth2.AuthCodeOption
+	if codeVerifier != "" {
+		opts = append(opts, oauth2.SetAuthURLParam("code_verifier", codeVerifier))
+	}
 
-	// c := oauth2.Config{
-	// 	ClientID:     p.ClientID,
-	// 	ClientSecret: clientSecret,
-	// 	Endpoint: oauth2.Endpoint{
-	// 		TokenURL: p.RedeemURL.String(),
-	// 	},
-	// 	RedirectURL: redirectURL,
-	// }
-	// token, err := c.Exchange(ctx, code, opts...)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("token exchange failed: %v", err)
-	// }
+	c := oauth2.Config{
+		ClientID:     p.ClientID,
+		ClientSecret: clientSecret,
+		Endpoint: oauth2.Endpoint{
+			TokenURL: p.RedeemURL.String(),
+		},
+		RedirectURL: redirectURL,
+	}
+	token, err := c.Exchange(ctx, code, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("token exchange failed: %v", err)
+	}
 
-	return p.createSession(ctx, nil, false)
+	return p.createSession(ctx, token, false)
 }
 
 // EnrichSession is called after Redeem to allow providers to enrich session fields

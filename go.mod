@@ -6,7 +6,6 @@ require (
 	github.com/alibaba/higress/plugins/wasm-go v1.3.6-0.20240531060402-2807ddfbb79e
 	github.com/benbjohnson/clock v1.3.5
 	github.com/bitly/go-simplejson v0.5.1
-	github.com/coreos/go-oidc/v3 v3.10.0
 	github.com/go-jose/go-jose/v4 v4.0.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1

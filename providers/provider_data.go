@@ -14,7 +14,8 @@ import (
 	internaloidc "oidc/pkg/providers/oidc"
 	"oidc/pkg/providers/util"
 
-	"github.com/coreos/go-oidc/v3/oidc"
+	oidc "oidc/pkg/providers/go_oidc"
+
 	"golang.org/x/oauth2"
 )
 

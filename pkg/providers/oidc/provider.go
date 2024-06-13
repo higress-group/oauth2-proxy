@@ -7,7 +7,7 @@ import (
 )
 
 // providerJSON represents the information we need from an OIDC discovery
-type providerJSON struct {
+type ProviderJSON struct {
 	Issuer               string   `json:"issuer"`
 	AuthURL              string   `json:"authorization_endpoint"`
 	TokenURL             string   `json:"token_endpoint"`
@@ -44,30 +44,23 @@ type DiscoveryProvider interface {
 // We implement this here as opposed to using oidc.Provider so that we can override the Issuer verification check.
 // As we have our own verifier and fetch the userinfo separately, the rest of the oidc.Provider implementation is not
 // useful to us.
-func NewProvider(ctx context.Context, issuerURL string, skipIssuerVerification bool) (DiscoveryProvider, error) {
+func NewProvider(ctx context.Context, issuerURL string, skipIssuerVerification bool, providerJson ProviderJSON) (DiscoveryProvider, error) {
 	// go-oidc doesn't let us pass bypass the issuer check this in the oidc.NewProvider call
 	// (which uses discovery to get the URLs), so we'll do a quick check ourselves and if
 	// we get the URLs, we'll just use the non-discovery path.
 
-	//logger.Printf("Performing OIDC Discovery...")
+	fmt.Printf("Performing OIDC Discovery...")
 
-	var p providerJSON
-	//requestURL := strings.TrimSuffix(issuerURL, "/") + "/.well-known/openid-configuration"
-	//if err := requests.New(requestURL).WithContext(ctx).Do().UnmarshalInto(&p); err != nil {
-	//	return nil, fmt.Errorf("failed to discover OIDC configuration: %v", err)
-	//}// TODO: check
-
-	if !skipIssuerVerification && p.Issuer != issuerURL {
-		return nil, fmt.Errorf("oidc: issuer did not match the issuer returned by provider, expected %q got %q", issuerURL, p.Issuer)
+	if !skipIssuerVerification && providerJson.Issuer != issuerURL {
+		return nil, fmt.Errorf("oidc: issuer did not match the issuer returned by provider, expected %q got %q", issuerURL, providerJson.Issuer)
 	}
-
 	return &discoveryProvider{
-		authURL:              p.AuthURL,
-		tokenURL:             p.TokenURL,
-		jwksURL:              p.JWKsURL,
-		userInfoURL:          p.UserInfoURL,
-		codeChallengeAlgs:    p.CodeChallengeAlgs,
-		supportedSigningAlgs: p.SupportedSigningAlgs,
+		authURL:              providerJson.AuthURL,
+		tokenURL:             providerJson.TokenURL,
+		jwksURL:              providerJson.JWKsURL,
+		userInfoURL:          providerJson.UserInfoURL,
+		codeChallengeAlgs:    providerJson.CodeChallengeAlgs,
+		supportedSigningAlgs: providerJson.SupportedSigningAlgs,
 	}, nil
 }
 

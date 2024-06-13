@@ -6,7 +6,7 @@ import (
 
 	sessionsapi "oidc/pkg/apis/sessions"
 
-	"github.com/coreos/go-oidc/v3/oidc"
+	oidc "oidc/pkg/providers/go_oidc"
 )
 
 // TokenToSessionFunc takes a raw ID Token and converts it into a SessionState.
