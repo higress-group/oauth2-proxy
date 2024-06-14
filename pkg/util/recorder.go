@@ -8,12 +8,14 @@ import (
 // records its mutations for later inspection in tests.
 type ResponseRecorder struct {
 	HeaderMap http.Header
+	Code      int
 }
 
 // NewRecorder returns an initialized [ResponseRecorder].
 func NewRecorder() *ResponseRecorder {
 	return &ResponseRecorder{
 		HeaderMap: make(http.Header),
+		Code:      0,
 	}
 }
 
@@ -32,5 +34,9 @@ func (rw *ResponseRecorder) Write(buf []byte) (int, error) {
 
 // WriteHeader implements [http.ResponseWriter].
 func (rw *ResponseRecorder) WriteHeader(code int) {
+	rw.Code = code
+}
 
+func (rw *ResponseRecorder) GetStatus() int {
+	return rw.Code
 }

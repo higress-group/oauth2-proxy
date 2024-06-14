@@ -4,12 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
+	"strings"
 
 	"oidc/pkg/apis/options"
 	"oidc/pkg/apis/sessions"
+	"oidc/pkg/util"
 
-	"golang.org/x/oauth2"
+	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 )
 
 // OIDCProvider represents an OIDC based Identity Provider
@@ -63,31 +67,45 @@ func (p *OIDCProvider) GetLoginURL(redirectURI, state, nonce string, extraParams
 }
 
 // Redeem exchanges the OAuth2 authentication token for an ID token
-func (p *OIDCProvider) Redeem(ctx context.Context, redirectURL, code, codeVerifier string) (*sessions.SessionState, error) {
+func (p *OIDCProvider) Redeem(ctx context.Context, redirectURL, code, codeVerifier string, client wrapper.HttpClient, callback func(sesssion *sessions.SessionState)) error {
 	clientSecret, err := p.GetClientSecret()
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	var opts []oauth2.AuthCodeOption
+	params := url.Values{}
+	params.Add("redirect_uri", redirectURL)
+	params.Add("client_id", p.ClientID)
+	params.Add("client_secret", clientSecret)
+	params.Add("code", code)
+	params.Add("grant_type", "authorization_code")
 	if codeVerifier != "" {
-		opts = append(opts, oauth2.SetAuthURLParam("code_verifier", codeVerifier))
+		params.Add("code_verifier", codeVerifier)
 	}
 
-	c := oauth2.Config{
-		ClientID:     p.ClientID,
-		ClientSecret: clientSecret,
-		Endpoint: oauth2.Endpoint{
-			TokenURL: p.RedeemURL.String(),
-		},
-		RedirectURL: redirectURL,
+	req, err := http.NewRequest("POST", p.RedeemURL.String(), strings.NewReader(params.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	var headerArray [][2]string
+	for key, values := range req.Header {
+		if len(values) > 0 {
+			headerArray = append(headerArray, [2]string{key, values[0]})
+		}
 	}
-	token, err := c.Exchange(ctx, code, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("token exchange failed: %v", err)
-	}
+	bodyBytes, err := io.ReadAll(req.Body)
+	req.Body.Close()
 
-	return p.createSession(ctx, token, false)
+	client.Post(p.RedeemURL.String(), headerArray, bodyBytes, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
+		token, err := util.UnmarshalToken(responseHeaders, responseBody)
+		if err != nil {
+			return
+		}
+		session, err := p.createSession(ctx, token, false)
+		if err != nil {
+			util.Logger.Error(err.Error())
+		}
+		callback(session)
+	}, 2000)
+
+	return nil
 }
 
 // EnrichSession is called after Redeem to allow providers to enrich session fields
@@ -104,19 +122,17 @@ func (p *OIDCProvider) EnrichSession(_ context.Context, s *sessions.SessionState
 func (p *OIDCProvider) ValidateSession(ctx context.Context, s *sessions.SessionState) bool {
 	_, err := p.Verifier.Verify(ctx, s.IDToken)
 	if err != nil {
-		//logger.Errorf("id_token verification failed: %v", err)
+		util.Logger.Errorf("id_token verification failed: %v", err)
 		return false
 	}
-
 	if p.SkipNonce {
 		return true
 	}
 	err = p.checkNonce(s)
 	if err != nil {
-		//logger.Errorf("nonce verification failed: %v", err)
+		util.Logger.Errorf("nonce verification failed: %v", err)
 		return false
 	}
-
 	return true
 }
 
@@ -211,7 +227,7 @@ func (p *OIDCProvider) CreateSessionFromToken(ctx context.Context, token string)
 
 // createSession takes an oauth2.Token and creates a SessionState from it.
 // It alters behavior if called from Redeem vs Refresh
-func (p *OIDCProvider) createSession(ctx context.Context, token *oauth2.Token, refresh bool) (*sessions.SessionState, error) {
+func (p *OIDCProvider) createSession(ctx context.Context, token *util.Token, refresh bool) (*sessions.SessionState, error) {
 	_, err := p.verifyIDToken(ctx, token)
 	if err != nil {
 		switch err {

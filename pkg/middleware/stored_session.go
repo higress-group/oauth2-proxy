@@ -86,7 +86,6 @@ func (s *storedSessionLoader) loadSession(next http.Handler) http.Handler {
 			next.ServeHTTP(rw, req)
 			return
 		}
-
 		session, err := s.getValidatedSession(rw, req)
 		if err != nil && !errors.Is(err, http.ErrNoCookie) {
 			// In the case when there was an error loading the session,

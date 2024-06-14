@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"oidc/pkg/util"
 	"sync"
 	"time"
 
@@ -131,11 +132,11 @@ func (r *RemoteKeySet) keysFromCache() (keys []jose.JSONWebKey) {
 	return r.cachedKeys
 }
 
-func (r *RemoteKeySet) UpdateKeys(client wrapper.HttpClient, log *wrapper.Log) error {
+func (r *RemoteKeySet) UpdateKeys(client wrapper.HttpClient) error {
 	var keySet jose.JSONWebKeySet
 	client.Get(r.jwksURL, nil, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
 		if statusCode != http.StatusOK {
-			log.Errorf("openid-configuration http call failed, status: %d", statusCode)
+			util.Logger.Errorf("openid-configuration http call failed, status: %d", statusCode)
 			return
 		}
 		json.Unmarshal(responseBody, &keySet)

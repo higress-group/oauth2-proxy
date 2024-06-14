@@ -28,10 +28,10 @@ func cookieDefaults() Cookie {
 		Path:           "/",
 		Expire:         time.Duration(168) * time.Hour,
 		Refresh:        time.Duration(0),
-		Secure:         true,
+		Secure:         false,
 		HTTPOnly:       true,
 		SameSite:       "",
 		CSRFPerRequest: false,
-		CSRFExpire:     time.Duration(24) * time.Hour,
+		CSRFExpire:     time.Duration(5) * time.Minute,
 	}
 }

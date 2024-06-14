@@ -8,6 +8,8 @@ import (
 
 	"oidc/pkg/apis/middleware"
 	"oidc/pkg/apis/sessions"
+
+	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 )
 
 var (
@@ -40,13 +42,13 @@ func (p *ProviderData) GetLoginURL(redirectURI, state, _ string, extraParams url
 
 // Redeem provides a default implementation of the OAuth2 token redemption process
 // The codeVerifier is set if a code_verifier parameter should be sent for PKCE
-func (p *ProviderData) Redeem(ctx context.Context, redirectURL, code, codeVerifier string) (*sessions.SessionState, error) {
+func (p *ProviderData) Redeem(ctx context.Context, redirectURL, code, codeVerifier string, client wrapper.HttpClient, callback func(sesssion *sessions.SessionState)) error {
 	if code == "" {
-		return nil, ErrMissingCode
+		return ErrMissingCode
 	}
 	clientSecret, err := p.GetClientSecret()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	params := url.Values{}
@@ -98,7 +100,7 @@ func (p *ProviderData) Redeem(ctx context.Context, redirectURL, code, codeVerifi
 
 	//return nil, fmt.Errorf("no access token found %s", result.Body())
 	// TODO: check
-	return nil, fmt.Errorf("error")
+	return fmt.Errorf("error")
 }
 
 // GetEmailAddress returns the Account email address

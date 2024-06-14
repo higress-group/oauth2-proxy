@@ -70,6 +70,7 @@ func (v *idTokenVerifier) verifyAudience(token *oidc.IDToken, claims map[string]
 			switch audienceClaimValueType := audienceClaimValue.(type) {
 			case []interface{}:
 				token.Audience = v.interfaceSliceToString(audienceClaimValue)
+			case string:
 			case interface{}:
 				token.Audience = []string{audienceClaimValue.(string)}
 			default:

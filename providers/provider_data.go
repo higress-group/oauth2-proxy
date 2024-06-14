@@ -11,12 +11,10 @@ import (
 
 	"oidc/pkg/apis/options"
 	"oidc/pkg/apis/sessions"
+	oidc "oidc/pkg/providers/go_oidc"
 	internaloidc "oidc/pkg/providers/oidc"
 	"oidc/pkg/providers/util"
-
-	oidc "oidc/pkg/providers/go_oidc"
-
-	"golang.org/x/oauth2"
+	pkgutil "oidc/pkg/util"
 )
 
 const (
@@ -218,7 +216,7 @@ func defaultURL(u *url.URL, d *url.URL) *url.URL {
 // OIDC compliant
 // ****************************************************************************
 
-func (p *ProviderData) verifyIDToken(ctx context.Context, token *oauth2.Token) (*oidc.IDToken, error) {
+func (p *ProviderData) verifyIDToken(ctx context.Context, token *pkgutil.Token) (*oidc.IDToken, error) {
 	rawIDToken := getIDToken(token)
 	if strings.TrimSpace(rawIDToken) == "" {
 		return nil, ErrMissingIDToken
@@ -238,42 +236,42 @@ func (p *ProviderData) buildSessionFromClaims(rawIDToken, accessToken string) (*
 		return ss, nil
 	}
 
-	extractor, err := p.getClaimExtractor(rawIDToken, accessToken)
-	if err != nil {
-		return nil, err
-	}
+	// extractor, err := p.getClaimExtractor(rawIDToken, accessToken)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	// Use a slice of a struct (vs map) here in case the same claim is used twice
-	for _, c := range []struct {
-		claim string
-		dst   interface{}
-	}{
-		{p.UserClaim, &ss.User},
-		{p.EmailClaim, &ss.Email},
-		{p.GroupsClaim, &ss.Groups},
-		// TODO (@NickMeves) Deprecate for dynamic claim to session mapping
-		{"preferred_username", &ss.PreferredUsername},
-	} {
-		if _, err := extractor.GetClaimInto(c.claim, c.dst); err != nil {
-			return nil, err
-		}
-	}
+	// // Use a slice of a struct (vs map) here in case the same claim is used twice
+	// for _, c := range []struct {
+	// 	claim string
+	// 	dst   interface{}
+	// }{
+	// 	{p.UserClaim, &ss.User},
+	// 	{p.EmailClaim, &ss.Email},
+	// 	{p.GroupsClaim, &ss.Groups},
+	// 	// TODO (@NickMeves) Deprecate for dynamic claim to session mapping
+	// 	{"preferred_username", &ss.PreferredUsername},
+	// } {
+	// 	if _, err := extractor.GetClaimInto(c.claim, c.dst); err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
-	// `email_verified` must be present and explicitly set to `false` to be
-	// considered unverified.
-	verifyEmail := (p.EmailClaim == options.OIDCEmailClaim) && !p.AllowUnverifiedEmail
+	// // `email_verified` must be present and explicitly set to `false` to be
+	// // considered unverified.
+	// verifyEmail := (p.EmailClaim == options.OIDCEmailClaim) && !p.AllowUnverifiedEmail
 
-	if verifyEmail {
-		var verified bool
-		exists, err := extractor.GetClaimInto("email_verified", &verified)
-		if err != nil {
-			return nil, err
-		}
+	// if verifyEmail {
+	// 	var verified bool
+	// 	exists, err := extractor.GetClaimInto("email_verified", &verified)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
 
-		if exists && !verified {
-			return nil, fmt.Errorf("email in id_token (%s) isn't verified", ss.Email)
-		}
-	}
+	// 	if exists && !verified {
+	// 		return nil, fmt.Errorf("email in id_token (%s) isn't verified", ss.Email)
+	// 	}
+	// }
 
 	return ss, nil
 }

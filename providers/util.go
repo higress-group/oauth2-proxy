@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-
-	"golang.org/x/oauth2"
+	pkgutil "oidc/pkg/util"
 )
 
 const (
@@ -53,7 +52,7 @@ func makeLoginURL(p *ProviderData, redirectURI, state string, extraParams url.Va
 
 // getIDToken extracts an IDToken stored in the `Extra` fields of an
 // oauth2.Token
-func getIDToken(token *oauth2.Token) string {
+func getIDToken(token *pkgutil.Token) string {
 	idToken, ok := token.Extra("id_token").(string)
 	if !ok {
 		return ""

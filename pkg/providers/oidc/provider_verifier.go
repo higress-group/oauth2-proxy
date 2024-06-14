@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	oidc "oidc/pkg/providers/go_oidc"
+	"oidc/pkg/providers/util"
 )
 
 // ProviderVerifier represents the OIDC discovery and verification process
@@ -61,9 +62,9 @@ func (p ProviderVerifierOptions) validate() error {
 		errs = append(errs, errors.New("missing required setting: jwks-url"))
 	}
 
-	// if len(errs) > 0 {
-	// 	return k8serrors.NewAggregate(errs)
-	// } TODO: check
+	if len(errs) > 0 {
+		return util.NewAggregate(errs)
+	}
 	return nil
 }
 

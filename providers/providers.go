@@ -12,6 +12,7 @@ import (
 	"oidc/pkg/apis/sessions"
 	internaloidc "oidc/pkg/providers/oidc"
 	"oidc/pkg/providers/util"
+	pkgutil "oidc/pkg/util"
 
 	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 )
@@ -25,7 +26,7 @@ const (
 type Provider interface {
 	Data() *ProviderData
 	GetLoginURL(redirectURI, finalRedirect, nonce string, extraParams url.Values) string
-	Redeem(ctx context.Context, redirectURI, code, codeVerifier string) (*sessions.SessionState, error)
+	Redeem(ctx context.Context, redirectURI, code, codeVerifier string, client wrapper.HttpClient, callback func(sesssion *sessions.SessionState)) error
 	// Deprecated: Migrate to EnrichSession
 	GetEmailAddress(ctx context.Context, s *sessions.SessionState) (string, error)
 	EnrichSession(ctx context.Context, s *sessions.SessionState) error
@@ -48,7 +49,7 @@ func NewProvider(providerConfig options.Provider) (Provider, error) {
 	}
 }
 
-func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, client wrapper.HttpClient, log *wrapper.Log) error {
+func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, client wrapper.HttpClient) error {
 
 	needsVerifier, err := providerRequiresOIDCProviderVerifier(providerConfig.Type)
 	if err != nil {
@@ -69,7 +70,7 @@ func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, cli
 		requestURL := strings.TrimSuffix(verifierOptions.IssuerURL, "/") + "/.well-known/openid-configuration"
 		client.Get(requestURL, nil, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
 			if statusCode != http.StatusOK {
-				log.Errorf("openid-configuration http call failed, status: %d", statusCode)
+				pkgutil.Logger.Errorf("openid-configuration http call failed, status: %d", statusCode)
 				return
 			}
 			json.Unmarshal(responseBody, &providerJson)
@@ -86,8 +87,7 @@ func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, cli
 				p.SupportedCodeChallengeMethods = pkce.CodeChallengeAlgs
 			}
 			providerConfigInfoCheck(providerConfig, p)
-			log.Debugf("set provider data : %v", p)
-			(*p.Verifier.GetKeySet()).UpdateKeys(client, log)
+			(*p.Verifier.GetKeySet()).UpdateKeys(client)
 		}, 2000)
 		return nil
 	}

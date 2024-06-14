@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"oidc/pkg/apis/options"
@@ -41,6 +40,7 @@ type OidcConfig struct {
 
 // 在控制台插件配置中填写的yaml配置会自动转换为json，此处直接从json这个参数里解析配置即可
 func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
+	util.Logger = &log
 	opts, err := options.LoadOptions(json)
 	if err != nil {
 		return err
@@ -52,14 +52,14 @@ func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
 
 	config.Options = opts
 	validator := func(string) bool { return true }
-	oauthproxy, err := NewOAuthProxy(opts, validator, &log)
+	oauthproxy, err := NewOAuthProxy(opts, validator)
 	if err != nil {
 		return err
 	}
 	config.OidcHandler = oauthproxy
 
 	wrapper.RegisteTickFunc(86400000, func() {
-		providers.NewVerifierFromConfig(config.Options.Providers[0], config.OidcHandler.provider.Data(), config.OidcHandler.client, &log)
+		providers.NewVerifierFromConfig(config.Options.Providers[0], config.OidcHandler.provider.Data(), config.OidcHandler.client)
 	})
 	return nil
 }
@@ -84,8 +84,8 @@ func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrappe
 		Header: make(http.Header),
 		Body:   nil,
 	}
+	req.Form, _ = url.ParseQuery(parsedURL.RawQuery)
 
-	fmt.Printf("[DEBUG] headers", headers)
 	for _, header := range headers {
 		if !strings.HasPrefix(header[0], ":") {
 			req.Header.Add(header[0], header[1])
@@ -94,6 +94,9 @@ func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrappe
 	rw := util.NewRecorder()
 
 	config.OidcHandler.serveMux.ServeHTTP(rw, req)
-
+	code := rw.GetStatus()
+	if code == http.StatusOK {
+		return types.ActionContinue
+	}
 	return types.ActionPause
 }
