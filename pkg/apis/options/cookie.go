@@ -28,7 +28,7 @@ func cookieDefaults() Cookie {
 		Path:           "/",
 		Expire:         time.Duration(168) * time.Hour,
 		Refresh:        time.Duration(0),
-		Secure:         false,
+		Secure:         true,
 		HTTPOnly:       true,
 		SameSite:       "",
 		CSRFPerRequest: false,
