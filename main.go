@@ -8,6 +8,7 @@ import (
 	"oidc/pkg/validation"
 	"oidc/providers"
 	"strings"
+	"time"
 
 	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
@@ -51,8 +52,13 @@ func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
 	}
 	config.OidcHandler = oauthproxy
 
-	wrapper.RegisteTickFunc(86400000, func() {
+	wrapper.RegisteTickFunc(int64(24*time.Hour), func() {
 		providers.NewVerifierFromConfig(config.Options.Providers[0], config.OidcHandler.provider.Data(), config.OidcHandler.client)
+	})
+	wrapper.RegisteTickFunc(int64(15*time.Minute), func() {
+		if *&config.OidcHandler.provider.Data().Verifier != nil {
+			(*config.OidcHandler.provider.Data().Verifier.GetKeySet()).UpdateKeys(oauthproxy.client, config.Options.Providers[0].OIDCConfig.VerifierRequestTimeout)
+		}
 	})
 	return nil
 }

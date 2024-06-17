@@ -3,11 +3,14 @@ package providers
 import (
 	"context"
 	"errors"
-	"fmt"
+	"io"
+	"net/http"
 	"net/url"
+	"strings"
 
 	"oidc/pkg/apis/middleware"
 	"oidc/pkg/apis/sessions"
+	"oidc/pkg/util"
 
 	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 )
@@ -64,43 +67,29 @@ func (p *ProviderData) Redeem(ctx context.Context, redirectURL, code, codeVerifi
 		params.Add("resource", p.ProtectedResource.String())
 	}
 
-	//result := requests.New(p.RedeemURL.String()).
-	//	WithContext(ctx).
-	//	WithMethod("POST").
-	//	WithBody(bytes.NewBufferString(params.Encode())).
-	//	SetHeader("Content-Type", "application/x-www-form-urlencoded").
-	//	Do()
-	//if result.Error() != nil {
-	//	return nil, result.Error()
-	//}
-	//
-	//// blindly try json and x-www-form-urlencoded
-	//var jsonResponse struct {
-	//	AccessToken string `json:"access_token"`
-	//}
-	//err = result.UnmarshalInto(&jsonResponse)
-	//if err == nil {
-	//	return &sessions.SessionState{
-	//		AccessToken: jsonResponse.AccessToken,
-	//	}, nil
-	//}
-	//
-	//values, err := url.ParseQuery(string(result.Body()))
-	//if err != nil {
-	//	return nil, err
-	//}
-	//// TODO (@NickMeves): Uses OAuth `expires_in` to set an expiration
-	//if token := values.Get("access_token"); token != "" {
-	//	ss := &sessions.SessionState{
-	//		AccessToken: token,
-	//	}
-	//	ss.CreatedAtNow()
-	//	return ss, nil
-	//}
+	req, err := http.NewRequest("POST", p.RedeemURL.String(), strings.NewReader(params.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	var headerArray [][2]string
+	for key, values := range req.Header {
+		if len(values) > 0 {
+			headerArray = append(headerArray, [2]string{key, values[0]})
+		}
+	}
+	bodyBytes, err := io.ReadAll(req.Body)
+	req.Body.Close()
 
-	//return nil, fmt.Errorf("no access token found %s", result.Body())
-	// TODO: check
-	return fmt.Errorf("error")
+	client.Post(p.RedeemURL.String(), headerArray, bodyBytes, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
+		token, err := util.UnmarshalToken(responseHeaders, responseBody)
+		if err != nil {
+			util.SendError(err.Error(), nil, http.StatusInternalServerError)
+			return
+		}
+		session := &sessions.SessionState{
+			AccessToken: token.AccessToken,
+		}
+		callback(session)
+	}, timeout)
+	return nil
 }
 
 // GetEmailAddress returns the Account email address

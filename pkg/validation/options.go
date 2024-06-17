@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"oidc/pkg/apis/options"
+	"oidc/pkg/util"
 )
 
 // Validate checks that required options are set and validates those that they
@@ -23,7 +24,7 @@ func Validate(o *options.Options) error {
 	redirectURL, msgs = parseURL(o.RawRedirectURL, "redirect", msgs)
 	o.SetRedirectURL(redirectURL)
 	if o.RawRedirectURL == "" && !o.Cookie.Secure && !o.ReverseProxy {
-		//logger.Print("WARNING: no explicit redirect URL: redirects will default to insecure HTTP")
+		util.Logger.Info("WARNING: no explicit redirect URL: redirects will default to insecure HTTP")
 	}
 
 	if len(msgs) != 0 {

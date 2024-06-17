@@ -50,7 +50,6 @@ func IsProxied(req *http.Request) bool {
 		return false
 	}
 	return scope.ReverseProxy
-	return false
 }
 
 func IsForwardedRequest(req *http.Request) bool {
