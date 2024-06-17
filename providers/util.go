@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -58,18 +57,4 @@ func getIDToken(token *pkgutil.Token) string {
 		return ""
 	}
 	return idToken
-}
-
-// formatGroup coerces an OIDC groups claim into a string
-// If it is non-string, marshal it into JSON.
-func formatGroup(rawGroup interface{}) (string, error) {
-	if group, ok := rawGroup.(string); ok {
-		return group, nil
-	}
-
-	jsonGroup, err := json.Marshal(rawGroup)
-	if err != nil {
-		return "", err
-	}
-	return string(jsonGroup), nil
 }

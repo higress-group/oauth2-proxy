@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -503,20 +502,6 @@ func (p *OAuthProxy) redeemCode(req *http.Request, codeVerifier string, client w
 	}
 
 	return nil
-}
-
-func (p *OAuthProxy) enrichSessionState(ctx context.Context, s *sessionsapi.SessionState) error {
-	var err error
-	if s.Email == "" {
-		// TODO: Remove once all provider are updated to implement EnrichSession
-		// nolint:static check
-		s.Email, err = p.provider.GetEmailAddress(ctx, s)
-		if err != nil && !errors.Is(err, providers.ErrNotImplemented) {
-			return err
-		}
-	}
-
-	return p.provider.EnrichSession(ctx, s)
 }
 
 // isAjax checks if a request is an ajax request

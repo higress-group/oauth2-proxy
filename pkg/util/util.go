@@ -85,16 +85,3 @@ func isHostnameAllowed(hostname, allowedHost string) bool {
 
 	return false
 }
-
-// RemoveDuplicateStr removes duplicates from a slice of strings.
-func RemoveDuplicateStr(strSlice []string) []string {
-	allKeys := make(map[string]struct{})
-	var list []string
-	for _, item := range strSlice {
-		if _, ok := allKeys[item]; !ok {
-			allKeys[item] = struct{}{}
-			list = append(list, item)
-		}
-	}
-	return list
-}

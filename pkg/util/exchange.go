@@ -30,23 +30,6 @@ type tokenJSON struct {
 	ExpiresIn    expirationTime `json:"expires_in"` // at least PayPal returns string, while most return number
 }
 
-type AuthCodeOption interface {
-	setValue(url.Values)
-}
-
-func TokenFromInternal(t *Token) *Token {
-	if t == nil {
-		return nil
-	}
-	return &Token{
-		AccessToken:  t.AccessToken,
-		TokenType:    t.TokenType,
-		RefreshToken: t.RefreshToken,
-		Expiry:       t.Expiry,
-		Raw:          t.Raw,
-	}
-}
-
 func (e *tokenJSON) expiry() (t time.Time) {
 	if v := e.ExpiresIn; v != 0 {
 		return time.Now().Add(time.Duration(v) * time.Second)
@@ -74,31 +57,6 @@ func (e *expirationTime) UnmarshalJSON(b []byte) error {
 	}
 	*e = expirationTime(i)
 	return nil
-}
-
-type AuthStyle int
-
-const (
-	AuthStyleUnknown  AuthStyle = 0
-	AuthStyleInParams AuthStyle = 1
-	AuthStyleInHeader AuthStyle = 2
-)
-
-var authStyleCache struct {
-	m map[string]AuthStyle // keyed by tokenURL
-}
-
-func LookupAuthStyle(tokenURL string) (style AuthStyle, ok bool) {
-	style, ok = authStyleCache.m[tokenURL]
-	return
-}
-
-// SetAuthStyle adds an entry to authStyleCache, documented above.
-func SetAuthStyle(tokenURL string, v AuthStyle) {
-	if authStyleCache.m == nil {
-		authStyleCache.m = make(map[string]AuthStyle)
-	}
-	authStyleCache.m[tokenURL] = v
 }
 
 func (t *Token) Extra(key string) interface{} {
@@ -172,13 +130,4 @@ func UnmarshalToken(Headers http.Header, body []byte) (*Token, error) {
 		return nil, errors.New("oauth2: server response missing access_token")
 	}
 	return token, nil
-}
-
-type RetrieveError struct {
-	Response *http.Response
-	Body     []byte
-}
-
-func (r *RetrieveError) Error() string {
-	return fmt.Sprintf("oauth2: cannot fetch token: %v\nResponse: %s", r.Response.Status, r.Body)
 }

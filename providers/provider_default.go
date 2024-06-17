@@ -122,7 +122,7 @@ func (p *ProviderData) Authorize(_ context.Context, s *sessions.SessionState) (b
 
 // ValidateSession validates the AccessToken
 func (p *ProviderData) ValidateSession(ctx context.Context, s *sessions.SessionState) bool {
-	return validateToken(ctx, p, s.AccessToken, nil)
+	return true
 }
 
 // RefreshSession refreshes the user's session

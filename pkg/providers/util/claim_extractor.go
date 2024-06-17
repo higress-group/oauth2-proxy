@@ -49,7 +49,6 @@ type claimExtractor struct {
 	profileURL     *url.URL
 	requestHeaders map[string][]string
 	tokenClaims    *simplejson.Json
-	profileClaims  *simplejson.Json
 }
 
 // GetClaim will return the value claim if it exists.
@@ -64,45 +63,7 @@ func (c *claimExtractor) GetClaim(claim string) (interface{}, bool, error) {
 		return value, true, nil
 	}
 
-	if c.profileClaims == nil {
-		profileClaims, err := c.loadProfileClaims()
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to fetch claims from profile URL: %v", err)
-		}
-
-		c.profileClaims = profileClaims
-	}
-
-	if value := getClaimFrom(claim, c.profileClaims); value != nil {
-		return value, true, nil
-	}
-
 	return nil, false, nil
-}
-
-// loadProfileClaims will fetch the profileURL using the provided headers as
-// authentication.
-func (c *claimExtractor) loadProfileClaims() (*simplejson.Json, error) {
-	if c.profileURL == nil || c.profileURL.String() == "" || c.requestHeaders == nil {
-		// When no profileURL is set, we return a non-empty map so that
-		// we don't attempt to populate the profile claims again.
-		// If there are no headers, the request would be unauthorized so we also skip
-		// in this case too.
-		return simplejson.New(), nil
-	}
-
-	//claims, err := requests.New(c.profileURL.String()).
-	//	WithContext(c.ctx).
-	//	WithHeaders(c.requestHeaders).
-	//	Do().
-	//	UnmarshalSimpleJSON()
-	//if err != nil {
-	//	return nil, fmt.Errorf("error making request to profile URL: %v", err)
-	//}
-	//
-	//return claims, nil
-	// TODO: check
-	return nil, fmt.Errorf("error making request to profile URL")
 }
 
 // GetClaimInto loads a claim and places it into the destination interface.
