@@ -67,7 +67,7 @@ func (p *OIDCProvider) GetLoginURL(redirectURI, state, nonce string, extraParams
 }
 
 // Redeem exchanges the OAuth2 authentication token for an ID token
-func (p *OIDCProvider) Redeem(ctx context.Context, redirectURL, code, codeVerifier string, client wrapper.HttpClient, callback func(sesssion *sessions.SessionState)) error {
+func (p *OIDCProvider) Redeem(ctx context.Context, redirectURL, code, codeVerifier string, client wrapper.HttpClient, callback func(args ...interface{}), timeout uint32) error {
 	clientSecret, err := p.GetClientSecret()
 	if err != nil {
 		return err
@@ -96,14 +96,16 @@ func (p *OIDCProvider) Redeem(ctx context.Context, redirectURL, code, codeVerifi
 	client.Post(p.RedeemURL.String(), headerArray, bodyBytes, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
 		token, err := util.UnmarshalToken(responseHeaders, responseBody)
 		if err != nil {
+			util.SendError(err.Error(), nil, http.StatusInternalServerError)
 			return
 		}
 		session, err := p.createSession(ctx, token, false)
 		if err != nil {
-			util.Logger.Error(err.Error())
+			util.SendError(err.Error(), nil, http.StatusInternalServerError)
+			return
 		}
 		callback(session)
-	}, 2000)
+	}, timeout)
 
 	return nil
 }

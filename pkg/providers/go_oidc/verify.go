@@ -45,7 +45,7 @@ type KeySet interface {
 	// use any HTTP client associated with the context through ClientContext.
 	VerifySignature(ctx context.Context, jwt string) (payload []byte, err error)
 
-	UpdateKeys(client wrapper.HttpClient) error
+	UpdateKeys(client wrapper.HttpClient, timeout uint32) error
 }
 
 // IDTokenVerifier provides verification for ID Tokens.

@@ -199,13 +199,13 @@ func (p *OAuthProxy) doOAuthStart(rw http.ResponseWriter, req *http.Request, ove
 		codeChallengeMethod = p.provider.Data().CodeChallengeMethod
 		codeVerifier, err = encryption.GenerateRandomASCIIString(96)
 		if err != nil {
-			util.Logger.Errorf("Unable to build random ASCII string for code verifier: %v", err)
+			util.SendError(fmt.Sprintf("Unable to build random ASCII string for code verifier: %v", err), rw, http.StatusInternalServerError)
 			return
 		}
 
 		codeChallenge, err = encryption.GenerateCodeChallenge(p.provider.Data().CodeChallengeMethod, codeVerifier)
 		if err != nil {
-			util.Logger.Errorf("Error creating code challenge: %v", err)
+			util.SendError(fmt.Sprintf("Error creating code challenge: %v", err), rw, http.StatusInternalServerError)
 			return
 		}
 
@@ -215,13 +215,13 @@ func (p *OAuthProxy) doOAuthStart(rw http.ResponseWriter, req *http.Request, ove
 
 	csrf, err := cookies.NewCSRF(p.CookieOptions, codeVerifier)
 	if err != nil {
-		util.Logger.Errorf("Error creating CSRF nonce: %v", err)
+		util.SendError(fmt.Sprintf("Error creating CSRF nonce: %v", err), rw, http.StatusInternalServerError)
 		return
 	}
 
 	appRedirect, err := p.appDirector.GetRedirect(req)
 	if err != nil {
-		util.Logger.Errorf("Error obtaining application redirect: %v", err)
+		util.SendError(fmt.Sprintf("Error obtaining application redirect: %v", err), rw, http.StatusBadRequest)
 		return
 	}
 	callbackRedirect := p.getOAuthRedirectURI(req)
@@ -234,7 +234,7 @@ func (p *OAuthProxy) doOAuthStart(rw http.ResponseWriter, req *http.Request, ove
 	)
 
 	if _, err := csrf.SetCookie(rw, req); err != nil {
-		util.Logger.Errorf("Error setting CSRF cookie: %v", err)
+		util.SendError(fmt.Sprintf("Error setting CSRF cookie: %v", err), rw, http.StatusInternalServerError)
 		return
 	}
 	redirectToLocation(rw, loginURL)
@@ -273,36 +273,37 @@ func (p *OAuthProxy) OAuthCallback(rw http.ResponseWriter, req *http.Request) {
 	// finish the oauth cycle
 	err := req.ParseForm()
 	if err != nil {
-		util.Logger.Errorf("Error while parsing OAuth2 callback: %v", err)
+		util.SendError(fmt.Sprintf("Error while parsing OAuth2 callback: %v", err), rw, http.StatusInternalServerError)
 		return
 	}
 	errorString := req.Form.Get("error")
 	if errorString != "" {
-		util.Logger.Errorf("Error while parsing OAuth2 callback: %s", errorString)
+		util.SendError(fmt.Sprintf("Error while parsing OAuth2 callback: %s", errorString), rw, http.StatusForbidden)
 		return
 	}
 
 	csrf, err := cookies.LoadCSRFCookie(req, p.CookieOptions)
 	if err != nil {
-		util.Logger.Errorf("Invalid authentication via OAuth2. Error while loading CSRF cookie: %v", err)
+		util.SendError(fmt.Sprintf("Invalid authentication via OAuth2. Error while loading CSRF cookie: %v", err), rw, http.StatusForbidden)
 		return
 	}
 
-	callback := func(session *sessionsapi.SessionState) {
+	callback := func(args ...interface{}) {
+		session := args[0].(*sessionsapi.SessionState)
 		csrf.ClearCookie(rw, req)
 		nonce, appRedirect, err := decodeState(req.Form.Get("state"), p.encodeState)
 		if err != nil {
-			util.Logger.Errorf("Error while parsing OAuth2 state: %v", err)
+			util.SendError(fmt.Sprintf("Error while parsing OAuth2 state: %v", err), rw, http.StatusInternalServerError)
 			return
 		}
 
 		if !csrf.CheckOAuthState(nonce) {
-			util.Logger.Errorf("Invalid authentication via OAuth2: CSRF token mismatch, potential attack")
+			util.SendError("Invalid authentication via OAuth2: CSRF token mismatch, potential attack", rw, http.StatusForbidden)
 			return
 		}
 		csrf.SetSessionNonce(session)
 		if !p.provider.ValidateSession(req.Context(), session) {
-			util.Logger.Errorf("Session validation failed: %s", session)
+			util.SendError(fmt.Sprintf("Session validation failed: %s", session), rw, http.StatusForbidden)
 			return
 		}
 		if !p.redirectValidator.IsValidRedirect(appRedirect) {
@@ -317,18 +318,18 @@ func (p *OAuthProxy) OAuthCallback(rw http.ResponseWriter, req *http.Request) {
 			util.Logger.Infof("Authenticated successfully via OAuth2: %s", session)
 			err := p.SaveSession(rw, req, session)
 			if err != nil {
-				util.Logger.Errorf("Error saving session state: %v", err)
+				util.SendError(fmt.Sprintf("Error saving session state: %v", err), rw, http.StatusInternalServerError)
 				return
 			}
 			redirectToLocation(rw, appRedirect)
 		} else {
-			util.Logger.Errorf("Invalid authentication via OAuth2: unauthorized")
+			util.SendError("Invalid authentication via OAuth2: unauthorized", rw, http.StatusForbidden)
 		}
 	}
 
 	err = p.redeemCode(req, csrf.GetCodeVerifier(), p.client, callback)
 	if err != nil {
-		util.Logger.Errorf("Error redeeming code during OAuth2 callback: %v", err)
+		util.SendError(fmt.Sprintf("Error redeeming code during OAuth2 callback: %v", err), rw, http.StatusInternalServerError)
 		return
 	}
 }
@@ -340,13 +341,12 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 	switch {
 	case err == nil:
 		p.addHeadersForProxying(rw, session)
-		//TODO：check correct？
 		util.Logger.Infof("Authentication successfully.")
 		rw.WriteHeader(http.StatusOK)
 	case errors.Is(err, ErrNeedsLogin):
 		// we need to send the user to a login screen
 		if isAjax(req) {
-			util.Logger.Infof("No valid authentication in request. Access Denied.")
+			util.SendError("No valid authentication in request. Access Denied.", rw, http.StatusUnauthorized)
 			return
 		}
 		util.Logger.Infof("No valid authentication in request. Initiating login.")
@@ -355,10 +355,10 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 		// the user did not explicitly start the login flow
 		p.doOAuthStart(rw, req, nil)
 	case errors.Is(err, ErrAccessDenied):
-		// p.ErrorPage(rw, req, http.StatusForbidden, "The session failed authorization checks")
+		util.SendError("The session failed authorization checks", rw, http.StatusForbidden)
 	default:
 		// unknown error
-		util.Logger.Errorf("Unexpected internal error: %v", err)
+		util.SendError(fmt.Sprintf("Unexpected internal error: %v", err), rw, http.StatusInternalServerError)
 	}
 }
 
@@ -480,25 +480,27 @@ func (p *OAuthProxy) addHeadersForProxying(rw http.ResponseWriter, session *sess
 	}
 } // TODO: check if this is still needed
 
-func (p *OAuthProxy) redeemCode(req *http.Request, codeVerifier string, client wrapper.HttpClient, callback func(sesssion *sessionsapi.SessionState)) error {
+func (p *OAuthProxy) redeemCode(req *http.Request, codeVerifier string, client wrapper.HttpClient, callback func(args ...interface{})) error {
 	code := req.Form.Get("code")
 	if code == "" {
 		return providers.ErrMissingCode
 	}
 
+	setEmptyVar := func(args ...interface{}) {
+		s := args[0].(*sessionsapi.SessionState)
+		if s.CreatedAt == nil {
+			s.CreatedAtNow()
+		}
+		if s.ExpiresOn == nil {
+			s.ExpiresIn(p.CookieOptions.Expire)
+		}
+	}
+	combine := util.Combine(setEmptyVar, callback)
 	redirectURI := p.getOAuthRedirectURI(req)
-	err := p.provider.Redeem(req.Context(), redirectURI, code, codeVerifier, client, callback)
+	err := p.provider.Redeem(req.Context(), redirectURI, code, codeVerifier, client, combine, p.provider.Data().RedeemTimeout)
 	if err != nil {
 		return err
 	}
-
-	// Force setting these in case the Provider didn't
-	// if s.CreatedAt == nil {
-	// 	s.CreatedAtNow()
-	// }
-	// if s.ExpiresOn == nil {
-	// 	s.ExpiresIn(p.CookieOptions.Expire)
-	// } // TODO: add function chain
 
 	return nil
 }

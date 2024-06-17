@@ -42,7 +42,7 @@ func (p *ProviderData) GetLoginURL(redirectURI, state, _ string, extraParams url
 
 // Redeem provides a default implementation of the OAuth2 token redemption process
 // The codeVerifier is set if a code_verifier parameter should be sent for PKCE
-func (p *ProviderData) Redeem(ctx context.Context, redirectURL, code, codeVerifier string, client wrapper.HttpClient, callback func(sesssion *sessions.SessionState)) error {
+func (p *ProviderData) Redeem(ctx context.Context, redirectURL, code, codeVerifier string, client wrapper.HttpClient, callback func(args ...interface{}), timeout uint32) error {
 	if code == "" {
 		return ErrMissingCode
 	}

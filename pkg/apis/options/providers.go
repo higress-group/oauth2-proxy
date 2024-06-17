@@ -68,6 +68,8 @@ type Provider struct {
 
 	// URL to call to perform backend logout, `{id_token}` would be replaced by the actual `id_token` if available in the session
 	BackendLogoutURL string `json:"backendLogoutURL"`
+
+	RedeemTimeout uint32 `json:"redeemTimeout"`
 }
 
 // ProviderType is used to enumerate the different provider type options
@@ -157,6 +159,8 @@ type OIDCOptions struct {
 	// ExtraAudiences is a list of additional audiences that are allowed
 	// to pass verification in addition to the client id.
 	ExtraAudiences []string `json:"extraAudiences,omitempty"`
+
+	VerifierRequestTimeout uint32 `json:"verifierTimeout,omitempty"`
 }
 
 type LoginGovOptions struct {

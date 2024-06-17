@@ -15,13 +15,6 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// MyResponseWriter 是一个自定义的 ResponseWriter
-// 它嵌入 http.ResponseWriter 接口，并且可以增加其他成员
-type MyResponseWriter struct {
-	http.ResponseWriter
-	StatusCode int // 用于记录状态码
-}
-
 func main() {
 	wrapper.SetCtx(
 		// 插件名称
@@ -65,6 +58,18 @@ func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
 }
 
 func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrapper.Log) types.Action {
+	req := getHttpRequest()
+	rw := util.NewRecorder()
+
+	config.OidcHandler.serveMux.ServeHTTP(rw, req)
+	code := rw.GetStatus()
+	if code != 0 {
+		return types.ActionContinue
+	}
+	return types.ActionPause
+}
+
+func getHttpRequest() *http.Request {
 	headers, _ := proxywasm.GetHttpRequestHeaders()
 
 	var method, path string
@@ -91,12 +96,5 @@ func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrappe
 			req.Header.Add(header[0], header[1])
 		}
 	}
-	rw := util.NewRecorder()
-
-	config.OidcHandler.serveMux.ServeHTTP(rw, req)
-	code := rw.GetStatus()
-	if code == http.StatusOK {
-		return types.ActionContinue
-	}
-	return types.ActionPause
+	return req
 }

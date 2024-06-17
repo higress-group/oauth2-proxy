@@ -132,7 +132,7 @@ func (r *RemoteKeySet) keysFromCache() (keys []jose.JSONWebKey) {
 	return r.cachedKeys
 }
 
-func (r *RemoteKeySet) UpdateKeys(client wrapper.HttpClient) error {
+func (r *RemoteKeySet) UpdateKeys(client wrapper.HttpClient, timeout uint32) error {
 	var keySet jose.JSONWebKeySet
 	client.Get(r.jwksURL, nil, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
 		if statusCode != http.StatusOK {
@@ -141,6 +141,6 @@ func (r *RemoteKeySet) UpdateKeys(client wrapper.HttpClient) error {
 		}
 		json.Unmarshal(responseBody, &keySet)
 		r.cachedKeys = keySet.Keys
-	}, 2000)
+	}, timeout)
 	return nil
 }

@@ -47,8 +47,10 @@ type LegacyProvider struct {
 	OIDCGroupsClaim                    string   `mapstructure:"oidc_groups_claim"`
 	OIDCAudienceClaims                 []string `mapstructure:"oidc_audience_claims"`
 	OIDCExtraAudiences                 []string `mapstructure:"oidc_extra_audiences"`
+	OIDCVerifierRequestTimeout         uint32   `mapstructure:"oidc_verifier_request_timeout"`
 	LoginURL                           string   `mapstructure:"login_url"`
 	RedeemURL                          string   `mapstructure:"redeem_url"`
+	RedeemTimeout                      uint32   `mapstructure:"redeem_timeout"`
 	ProfileURL                         string   `mapstructure:"profile_url"`
 	SkipClaimsFromProfileURL           bool     `mapstructure:"skip_claims_from_profile_url"`
 	ProtectedResource                  string   `mapstructure:"resource"`
@@ -87,6 +89,7 @@ func legacyProviderDefaults() LegacyProvider {
 		OIDCGroupsClaim:                    OIDCGroupsClaim,
 		OIDCAudienceClaims:                 []string{"aud"},
 		OIDCExtraAudiences:                 nil,
+		OIDCVerifierRequestTimeout:         500,
 		LoginURL:                           "",
 		RedeemURL:                          "",
 		ProfileURL:                         "",
@@ -129,6 +132,7 @@ func (l *LegacyProvider) convert() (Providers, error) {
 		AllowedGroups:            l.AllowedGroups,
 		CodeChallengeMethod:      l.CodeChallengeMethod,
 		BackendLogoutURL:         l.BackendLogoutURL,
+		RedeemTimeout:            l.RedeemTimeout,
 	}
 
 	// This part is out of the switch section for all providers that support OIDC
@@ -144,6 +148,7 @@ func (l *LegacyProvider) convert() (Providers, error) {
 		GroupsClaim:                    l.OIDCGroupsClaim,
 		AudienceClaims:                 l.OIDCAudienceClaims,
 		ExtraAudiences:                 l.OIDCExtraAudiences,
+		VerifierRequestTimeout:         l.OIDCVerifierRequestTimeout,
 	}
 
 	// Support for legacy configuration option

@@ -57,6 +57,8 @@ type ProviderData struct {
 	loginURLParameterOverrides map[string]*regexp.Regexp
 
 	BackendLogoutURL string
+
+	RedeemTimeout uint32
 }
 
 // Data returns the ProviderData

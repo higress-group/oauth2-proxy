@@ -26,7 +26,7 @@ const (
 type Provider interface {
 	Data() *ProviderData
 	GetLoginURL(redirectURI, finalRedirect, nonce string, extraParams url.Values) string
-	Redeem(ctx context.Context, redirectURI, code, codeVerifier string, client wrapper.HttpClient, callback func(sesssion *sessions.SessionState)) error
+	Redeem(ctx context.Context, redirectURI, code, codeVerifier string, client wrapper.HttpClient, callback func(args ...interface{}), timeout uint32) error
 	// Deprecated: Migrate to EnrichSession
 	GetEmailAddress(ctx context.Context, s *sessions.SessionState) (string, error)
 	EnrichSession(ctx context.Context, s *sessions.SessionState) error
@@ -87,8 +87,8 @@ func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, cli
 				p.SupportedCodeChallengeMethods = pkce.CodeChallengeAlgs
 			}
 			providerConfigInfoCheck(providerConfig, p)
-			(*p.Verifier.GetKeySet()).UpdateKeys(client)
-		}, 2000)
+			(*p.Verifier.GetKeySet()).UpdateKeys(client, providerConfig.OIDCConfig.VerifierRequestTimeout)
+		}, providerConfig.OIDCConfig.VerifierRequestTimeout)
 		return nil
 	}
 	errs := providerConfigInfoCheck(providerConfig, p)
@@ -101,6 +101,7 @@ func newProviderDataFromConfig(providerConfig options.Provider) (*ProviderData, 
 		ClientID:         providerConfig.ClientID,
 		ClientSecret:     providerConfig.ClientSecret,
 		ClientSecretFile: providerConfig.ClientSecretFile,
+		RedeemTimeout:    providerConfig.RedeemTimeout,
 	}
 
 	errs := providerConfigInfoCheck(providerConfig, p)
