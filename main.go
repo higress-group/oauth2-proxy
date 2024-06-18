@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"oidc/pkg/apis/options"
@@ -52,10 +51,11 @@ func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
 	}
 	config.OidcHandler = oauthproxy
 
-	wrapper.RegisteTickFunc(8640000, func() {
+	wrapper.RegisteTickFunc(opts.VerifierInterval, func() {
 		providers.NewVerifierFromConfig(config.Options.Providers[0], config.OidcHandler.provider.Data(), config.OidcHandler.client)
 	})
-	wrapper.RegisteTickFunc(600000, func() {
+
+	wrapper.RegisteTickFunc(opts.UpdateKeysInterval, func() {
 		if *&config.OidcHandler.provider.Data().Verifier != nil {
 			(*config.OidcHandler.provider.Data().Verifier.GetKeySet()).UpdateKeys(oauthproxy.client, config.Options.Providers[0].OIDCConfig.VerifierRequestTimeout)
 		}
@@ -64,15 +64,16 @@ func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
 }
 
 func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrapper.Log) types.Action {
-	fmt.Printf("[DEBUG]: %v", config.Options)
+
 	req := getHttpRequest()
 	rw := util.NewRecorder()
 
 	config.OidcHandler.serveMux.ServeHTTP(rw, req)
-	code := rw.GetStatus()
-	if code != 0 {
+
+	if code := rw.GetStatus(); code != 0 {
 		return types.ActionContinue
 	}
+
 	return types.ActionPause
 }
 

@@ -901,7 +901,7 @@ func (d *Decoder) decodeMapFromMap(name string, dataVal reflect.Value, val refle
 	return nil
 }
 
-func (d *Decoder) decodeMapFromStruct(name string, dataVal reflect.Value, val reflect.Value, valMap reflect.Value) error {
+func (d *Decoder) decodeMapFromStruct(_ string, dataVal reflect.Value, val reflect.Value, valMap reflect.Value) error {
 	typ := dataVal.Type()
 	for i := 0; i < typ.NumField(); i++ {
 		// Get the StructField first since this is a cheap operation. If the
@@ -936,12 +936,12 @@ func (d *Decoder) decodeMapFromStruct(name string, dataVal reflect.Value, val re
 				continue
 			}
 			// If "omitempty" is specified in the tag, it ignores empty values.
-			if strings.Index(tagValue[index+1:], "omitempty") != -1 && isEmptyValue(v) {
+			if strings.Contains(tagValue[index+1:], "omitempty") && isEmptyValue(v) {
 				continue
 			}
 
 			// If "squash" is specified in the tag, we squash the field down.
-			squash = squash || strings.Index(tagValue[index+1:], "squash") != -1
+			squash = squash || strings.Contains(tagValue[index+1:], "squash")
 			if squash {
 				// When squashing, the embedded type can be a pointer to a struct.
 				if v.Kind() == reflect.Ptr && v.Elem().Kind() == reflect.Struct {

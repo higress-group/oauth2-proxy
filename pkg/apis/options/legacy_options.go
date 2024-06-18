@@ -32,11 +32,8 @@ func (l *LegacyOptions) ToOptions() (*Options, error) {
 type LegacyProvider struct {
 	ClientID                           string   `mapstructure:"client_id"`
 	ClientSecret                       string   `mapstructure:"client_secret"`
-	ClientSecretFile                   string   `mapstructure:"client_secret_file"`
 	ProviderType                       string   `mapstructure:"provider"`
 	ProviderName                       string   `mapstructure:"provider_display_name"`
-	ProviderCAFiles                    []string `mapstructure:"provider_ca_files"`
-	UseSystemTrustStore                bool     `mapstructure:"use_system_trust_store"`
 	OIDCIssuerURL                      string   `mapstructure:"oidc_issuer_url"`
 	InsecureOIDCAllowUnverifiedEmail   bool     `mapstructure:"insecure_oidc_allow_unverified_email"`
 	InsecureOIDCSkipIssuerVerification bool     `mapstructure:"insecure_oidc_skip_issuer_verification"`
@@ -63,9 +60,6 @@ type LegacyProvider struct {
 	AllowedRoles                       []string `mapstructure:"allowed_roles"`
 	BackendLogoutURL                   string   `mapstructure:"backend_logout_url"`
 	AcrValues                          string   `mapstructure:"acr_values"`
-	JWTKey                             string   `mapstructure:"jwt_key"`
-	JWTKeyFile                         string   `mapstructure:"jwt_key_file"`
-	PubJWKURL                          string   `mapstructure:"pubjwk_url"`
 	CodeChallengeMethod                string   `mapstructure:"code_challenge_method"`
 	ForceCodeChallengeMethod           string   `mapstructure:"force_code_challenge_method"`
 }
@@ -74,11 +68,8 @@ func legacyProviderDefaults() LegacyProvider {
 	return LegacyProvider{
 		ClientID:                           "",
 		ClientSecret:                       "",
-		ClientSecretFile:                   "",
 		ProviderType:                       "oidc",
 		ProviderName:                       "",
-		ProviderCAFiles:                    nil,
-		UseSystemTrustStore:                false,
 		OIDCIssuerURL:                      "",
 		InsecureOIDCAllowUnverifiedEmail:   false,
 		InsecureOIDCSkipIssuerVerification: false,
@@ -104,9 +95,6 @@ func legacyProviderDefaults() LegacyProvider {
 		AllowedRoles:                       nil,
 		BackendLogoutURL:                   "",
 		AcrValues:                          "",
-		JWTKey:                             "",
-		JWTKeyFile:                         "",
-		PubJWKURL:                          "",
 		CodeChallengeMethod:                "",
 		ForceCodeChallengeMethod:           "",
 	}
@@ -118,10 +106,7 @@ func (l *LegacyProvider) convert() (Providers, error) {
 	provider := Provider{
 		ClientID:                 l.ClientID,
 		ClientSecret:             l.ClientSecret,
-		ClientSecretFile:         l.ClientSecretFile,
 		Type:                     ProviderType(l.ProviderType),
-		CAFiles:                  l.ProviderCAFiles,
-		UseSystemTrustStore:      l.UseSystemTrustStore,
 		LoginURL:                 l.LoginURL,
 		RedeemURL:                l.RedeemURL,
 		ProfileURL:               l.ProfileURL,

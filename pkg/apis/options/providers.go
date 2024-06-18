@@ -22,9 +22,6 @@ type Provider struct {
 	// ClientSecret is the OAuth Client Secret that is defined in the provider
 	// This value is required for all providers.
 	ClientSecret string `json:"clientSecret,omitempty"`
-	// ClientSecretFile is the name of the file
-	// containing the OAuth Client Secret, it will be used if ClientSecret is not set.
-	ClientSecretFile string `json:"clientSecretFile,omitempty"`
 	// OIDCConfig holds all configurations for OIDC provider
 	// or providers utilize OIDC configurations.
 	OIDCConfig OIDCOptions `json:"oidcConfig,omitempty"`
@@ -38,12 +35,7 @@ type Provider struct {
 	// Name is the providers display name
 	// if set, it will be shown to the users in the login page.
 	Name string `json:"name,omitempty"`
-	// CAFiles is a list of paths to CA certificates that should be used when connecting to the provider.
-	// If not specified, the default Go trust sources are used instead
-	CAFiles []string `json:"caFiles,omitempty"`
-	// UseSystemTrustStore determines if your custom CA files and the system trust store are used
-	// If set to true, your custom CA files and the system trust store are used otherwise only your custom CA files.
-	UseSystemTrustStore bool `json:"useSystemTrustStore,omitempty"`
+
 	// LoginURL is the authentication endpoint
 	LoginURL string `json:"loginURL,omitempty"`
 	// LoginURLParameters defines the parameters that can be passed from the start URL to the IdP login URL
@@ -79,45 +71,6 @@ type Provider struct {
 type ProviderType string
 
 const (
-	// ADFSProvider is the provider type for ADFS
-	ADFSProvider ProviderType = "adfs"
-
-	// AzureProvider is the provider type for Azure
-	AzureProvider ProviderType = "azure"
-
-	// BitbucketProvider is the provider type for Bitbucket
-	BitbucketProvider ProviderType = "bitbucket"
-
-	// DigitalOceanProvider is the provider type for DigitalOcean
-	DigitalOceanProvider ProviderType = "digitalocean"
-
-	// FacebookProvider is the provider type for Facebook
-	FacebookProvider ProviderType = "facebook"
-
-	// GitHubProvider is the provider type for GitHub
-	GitHubProvider ProviderType = "github"
-
-	// GitLabProvider is the provider type for GitLab
-	GitLabProvider ProviderType = "gitlab"
-
-	// GoogleProvider is the provider type for GoogleProvider
-	GoogleProvider ProviderType = "google"
-
-	// KeycloakProvider is the provider type for Keycloak
-	KeycloakProvider ProviderType = "keycloak"
-
-	// KeycloakOIDCProvider is the provider type for Keycloak OIDC
-	KeycloakOIDCProvider ProviderType = "keycloak-oidc"
-
-	// LinkedInProvider is the provider type for LinkedIn
-	LinkedInProvider ProviderType = "linkedin"
-
-	// LoginGovProvider is the provider type for LoginGov
-	LoginGovProvider ProviderType = "login.gov"
-
-	// NextCloudProvider is the provider type for NextCloud
-	NextCloudProvider ProviderType = "nextcloud"
-
 	// OIDCProvider is the provider type for OIDC
 	OIDCProvider ProviderType = "oidc"
 )
@@ -161,15 +114,6 @@ type OIDCOptions struct {
 	ExtraAudiences []string `json:"extraAudiences,omitempty"`
 
 	VerifierRequestTimeout uint32 `json:"verifierTimeout,omitempty"`
-}
-
-type LoginGovOptions struct {
-	// JWTKey is a private key in PEM format used to sign JWT,
-	JWTKey string `json:"jwtKey,omitempty"`
-	// JWTKeyFile is a path to the private key file in PEM format used to sign the JWT
-	JWTKeyFile string `json:"jwtKeyFile,omitempty"`
-	// PubJWKURL is the JWK pubkey access endpoint
-	PubJWKURL string `json:"pubjwkURL,omitempty"`
 }
 
 func providerDefaults() Providers {

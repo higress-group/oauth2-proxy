@@ -19,9 +19,7 @@ type Options struct {
 	RawRedirectURL      string `mapstructure:"redirect_url"`
 	RelativeRedirectURL bool   `mapstructure:"relative_redirect_url"`
 
-	AuthenticatedEmailsFile string   `mapstructure:"authenticated_emails_file"`
-	EmailDomains            []string `mapstructure:"email_domains"`
-	WhitelistDomains        []string `mapstructure:"whitelist_domains"`
+	WhitelistDomains []string `mapstructure:"whitelist_domains"`
 
 	Cookie  Cookie         `mapstructure:",squash"`
 	Session SessionOptions `mapstructure:",squash"`
@@ -29,9 +27,11 @@ type Options struct {
 
 	Providers Providers
 
-	SSLInsecureSkipVerify bool `mapstructure:"ssl_insecure_skip_verify"`
-	SkipAuthPreflight     bool `mapstructure:"skip_auth_preflight"`
-	EncodeState           bool `mapstructure:"encode_state"`
+	SkipAuthPreflight bool `mapstructure:"skip_auth_preflight"`
+	EncodeState       bool `mapstructure:"encode_state"`
+
+	VerifierInterval   int64
+	UpdateKeysInterval int64
 
 	// internal values that are set after config validation
 	redirectURL *url.URL // 私有字段通常不需要 mapstructure 标签
@@ -46,11 +46,12 @@ func (o *Options) SetRedirectURL(s *url.URL) { o.redirectURL = s }
 // NewOptions constructs a new Options with defaulted values
 func NewOptions() *Options {
 	return &Options{
-		ProxyPrefix:       "/oauth2",
-		Providers:         providerDefaults(),
-		Cookie:            cookieDefaults(),
-		Session:           sessionOptionsDefaults(),
-		SkipAuthPreflight: false,
-		EmailDomains:      []string{"*"},
+		ProxyPrefix:        "/oauth2",
+		Providers:          providerDefaults(),
+		Cookie:             cookieDefaults(),
+		Session:            sessionOptionsDefaults(),
+		SkipAuthPreflight:  false,
+		VerifierInterval:   24 * 60 * 60 * 1000,
+		UpdateKeysInterval: 15 * 60 * 1000,
 	}
 }

@@ -97,11 +97,10 @@ func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, cli
 
 func newProviderDataFromConfig(providerConfig options.Provider) (*ProviderData, error) {
 	p := &ProviderData{
-		Scope:            providerConfig.Scope,
-		ClientID:         providerConfig.ClientID,
-		ClientSecret:     providerConfig.ClientSecret,
-		ClientSecretFile: providerConfig.ClientSecretFile,
-		RedeemTimeout:    providerConfig.RedeemTimeout,
+		Scope:         providerConfig.Scope,
+		ClientID:      providerConfig.ClientID,
+		ClientSecret:  providerConfig.ClientSecret,
+		RedeemTimeout: providerConfig.RedeemTimeout,
 	}
 
 	errs := providerConfigInfoCheck(providerConfig, p)
@@ -113,7 +112,6 @@ func newProviderDataFromConfig(providerConfig options.Provider) (*ProviderData, 
 	}
 
 	// Make the OIDC options available to all providers that support it
-	p.AllowUnverifiedEmail = providerConfig.OIDCConfig.InsecureAllowUnverifiedEmail
 	p.EmailClaim = providerConfig.OIDCConfig.EmailClaim
 	p.GroupsClaim = providerConfig.OIDCConfig.GroupsClaim
 	p.SkipClaimsFromProfileURL = providerConfig.SkipClaimsFromProfileURL
@@ -156,10 +154,7 @@ func parseCodeChallengeMethod(providerConfig options.Provider) string {
 
 func providerRequiresOIDCProviderVerifier(providerType options.ProviderType) (bool, error) {
 	switch providerType {
-	case options.BitbucketProvider, options.DigitalOceanProvider, options.FacebookProvider, options.GitHubProvider,
-		options.GoogleProvider, options.KeycloakProvider, options.LinkedInProvider, options.LoginGovProvider, options.NextCloudProvider:
-		return false, nil
-	case options.ADFSProvider, options.AzureProvider, options.GitLabProvider, options.KeycloakOIDCProvider, options.OIDCProvider:
+	case options.OIDCProvider:
 		return true, nil
 	default:
 		return false, fmt.Errorf("unknown provider type: %s", providerType)

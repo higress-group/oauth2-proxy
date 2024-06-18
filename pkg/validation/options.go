@@ -15,11 +15,6 @@ func Validate(o *options.Options) error {
 	msgs := validateCookie(o.Cookie)
 	msgs = append(msgs, validateProviders(o)...)
 
-	if o.AuthenticatedEmailsFile == "" && len(o.EmailDomains) == 0 {
-		msgs = append(msgs, "missing setting for email validation: email-domain or authenticated-emails-file required."+
-			"\n      use email-domain=* to authorize all email addresses")
-	}
-
 	var redirectURL *url.URL
 	redirectURL, msgs = parseURL(o.RawRedirectURL, "redirect", msgs)
 	o.SetRedirectURL(redirectURL)

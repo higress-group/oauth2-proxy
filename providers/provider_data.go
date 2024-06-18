@@ -33,7 +33,6 @@ type ProviderData struct {
 	ValidateURL       *url.URL
 	ClientID          string
 	ClientSecret      string
-	ClientSecretFile  string
 	Scope             string
 	// The picked CodeChallenge Method or empty if none.
 	CodeChallengeMethod string
