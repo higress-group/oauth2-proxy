@@ -33,9 +33,7 @@ type LegacyProvider struct {
 	ClientID                           string   `mapstructure:"client_id"`
 	ClientSecret                       string   `mapstructure:"client_secret"`
 	ProviderType                       string   `mapstructure:"provider"`
-	ProviderName                       string   `mapstructure:"provider_display_name"`
 	OIDCIssuerURL                      string   `mapstructure:"oidc_issuer_url"`
-	InsecureOIDCAllowUnverifiedEmail   bool     `mapstructure:"insecure_oidc_allow_unverified_email"`
 	InsecureOIDCSkipIssuerVerification bool     `mapstructure:"insecure_oidc_skip_issuer_verification"`
 	InsecureOIDCSkipNonce              bool     `mapstructure:"insecure_oidc_skip_nonce"`
 	SkipOIDCDiscovery                  bool     `mapstructure:"skip_oidc_discovery"`
@@ -50,18 +48,14 @@ type LegacyProvider struct {
 	RedeemTimeout                      uint32   `mapstructure:"redeem_timeout"`
 	ProfileURL                         string   `mapstructure:"profile_url"`
 	SkipClaimsFromProfileURL           bool     `mapstructure:"skip_claims_from_profile_url"`
-	ProtectedResource                  string   `mapstructure:"resource"`
 	ValidateURL                        string   `mapstructure:"validate_url"`
 	Scope                              string   `mapstructure:"scope"`
 	Prompt                             string   `mapstructure:"prompt"`
 	ApprovalPrompt                     string   `mapstructure:"approval_prompt"`
 	UserIDClaim                        string   `mapstructure:"user_id_claim"`
 	AllowedGroups                      []string `mapstructure:"allowed_groups"`
-	AllowedRoles                       []string `mapstructure:"allowed_roles"`
-	BackendLogoutURL                   string   `mapstructure:"backend_logout_url"`
 	AcrValues                          string   `mapstructure:"acr_values"`
 	CodeChallengeMethod                string   `mapstructure:"code_challenge_method"`
-	ForceCodeChallengeMethod           string   `mapstructure:"force_code_challenge_method"`
 }
 
 func legacyProviderDefaults() LegacyProvider {
@@ -69,9 +63,7 @@ func legacyProviderDefaults() LegacyProvider {
 		ClientID:                           "",
 		ClientSecret:                       "",
 		ProviderType:                       "oidc",
-		ProviderName:                       "",
 		OIDCIssuerURL:                      "",
-		InsecureOIDCAllowUnverifiedEmail:   false,
 		InsecureOIDCSkipIssuerVerification: false,
 		InsecureOIDCSkipNonce:              true,
 		SkipOIDCDiscovery:                  false,
@@ -85,18 +77,14 @@ func legacyProviderDefaults() LegacyProvider {
 		RedeemURL:                          "",
 		ProfileURL:                         "",
 		SkipClaimsFromProfileURL:           false,
-		ProtectedResource:                  "",
 		ValidateURL:                        "",
 		Scope:                              "",
 		Prompt:                             "",
 		ApprovalPrompt:                     "force",
 		UserIDClaim:                        OIDCEmailClaim,
 		AllowedGroups:                      nil,
-		AllowedRoles:                       nil,
-		BackendLogoutURL:                   "",
 		AcrValues:                          "",
 		CodeChallengeMethod:                "",
-		ForceCodeChallengeMethod:           "",
 	}
 }
 
@@ -111,19 +99,16 @@ func (l *LegacyProvider) convert() (Providers, error) {
 		RedeemURL:                l.RedeemURL,
 		ProfileURL:               l.ProfileURL,
 		SkipClaimsFromProfileURL: l.SkipClaimsFromProfileURL,
-		ProtectedResource:        l.ProtectedResource,
 		ValidateURL:              l.ValidateURL,
 		Scope:                    l.Scope,
 		AllowedGroups:            l.AllowedGroups,
 		CodeChallengeMethod:      l.CodeChallengeMethod,
-		BackendLogoutURL:         l.BackendLogoutURL,
 		RedeemTimeout:            l.RedeemTimeout,
 	}
 
 	// This part is out of the switch section for all providers that support OIDC
 	provider.OIDCConfig = OIDCOptions{
 		IssuerURL:                      l.OIDCIssuerURL,
-		InsecureAllowUnverifiedEmail:   l.InsecureOIDCAllowUnverifiedEmail,
 		InsecureSkipIssuerVerification: l.InsecureOIDCSkipIssuerVerification,
 		InsecureSkipNonce:              l.InsecureOIDCSkipNonce,
 		SkipDiscovery:                  l.SkipOIDCDiscovery,
@@ -136,17 +121,7 @@ func (l *LegacyProvider) convert() (Providers, error) {
 		VerifierRequestTimeout:         l.OIDCVerifierRequestTimeout,
 	}
 
-	// Support for legacy configuration option
-	if l.ForceCodeChallengeMethod != "" && l.CodeChallengeMethod == "" {
-		provider.CodeChallengeMethod = l.ForceCodeChallengeMethod
-	}
-
-	if l.ProviderName != "" {
-		provider.ID = l.ProviderName
-		provider.Name = l.ProviderName
-	} else {
-		provider.ID = l.ProviderType + "=" + l.ClientID
-	}
+	provider.ID = l.ProviderType + "=" + l.ClientID
 
 	// handle AcrValues, Prompt and ApprovalPrompt
 	var urlParams []LoginURLParameter

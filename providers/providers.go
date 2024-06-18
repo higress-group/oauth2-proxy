@@ -135,8 +135,6 @@ func newProviderDataFromConfig(providerConfig options.Provider) (*ProviderData, 
 
 	p.setAllowedGroups(providerConfig.AllowedGroups)
 
-	p.BackendLogoutURL = providerConfig.BackendLogoutURL
-
 	return p, nil
 }
 
@@ -171,7 +169,6 @@ func providerConfigInfoCheck(providerConfig options.Provider, p *ProviderData) [
 		"redeem":   {dst: &p.RedeemURL, raw: providerConfig.RedeemURL},
 		"profile":  {dst: &p.ProfileURL, raw: providerConfig.ProfileURL},
 		"validate": {dst: &p.ValidateURL, raw: providerConfig.ValidateURL},
-		"resource": {dst: &p.ProtectedResource, raw: providerConfig.ProtectedResource},
 	} {
 		var err error
 		*u.dst, err = url.Parse(u.raw)

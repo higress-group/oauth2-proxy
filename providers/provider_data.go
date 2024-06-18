@@ -25,22 +25,20 @@ const (
 // ProviderData contains information required to configure all implementations
 // of OAuth2 providers
 type ProviderData struct {
-	ProviderName      string
-	LoginURL          *url.URL
-	RedeemURL         *url.URL
-	ProfileURL        *url.URL
-	ProtectedResource *url.URL
-	ValidateURL       *url.URL
-	ClientID          string
-	ClientSecret      string
-	Scope             string
+	ProviderName string
+	LoginURL     *url.URL
+	RedeemURL    *url.URL
+	ProfileURL   *url.URL
+	ValidateURL  *url.URL
+	ClientID     string
+	ClientSecret string
+	Scope        string
 	// The picked CodeChallenge Method or empty if none.
 	CodeChallengeMethod string
 	// Code challenge methods supported by the Provider
 	SupportedCodeChallengeMethods []string `json:"code_challenge_methods_supported,omitempty"`
 
 	// Common OIDC options for any OIDC-based providers to consume
-	AllowUnverifiedEmail     bool
 	UserClaim                string
 	EmailClaim               string
 	GroupsClaim              string
@@ -54,8 +52,6 @@ type ProviderData struct {
 	getAuthorizationHeaderFunc func(string) http.Header
 	loginURLParameterDefaults  url.Values
 	loginURLParameterOverrides map[string]*regexp.Regexp
-
-	BackendLogoutURL string
 
 	RedeemTimeout uint32
 }
@@ -236,43 +232,6 @@ func (p *ProviderData) buildSessionFromClaims(rawIDToken, accessToken string) (*
 	if rawIDToken == "" {
 		return ss, nil
 	}
-
-	// extractor, err := p.getClaimExtractor(rawIDToken, accessToken)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// // Use a slice of a struct (vs map) here in case the same claim is used twice
-	// for _, c := range []struct {
-	// 	claim string
-	// 	dst   interface{}
-	// }{
-	// 	{p.UserClaim, &ss.User},
-	// 	{p.EmailClaim, &ss.Email},
-	// 	{p.GroupsClaim, &ss.Groups},
-	// 	// TODO (@NickMeves) Deprecate for dynamic claim to session mapping
-	// 	{"preferred_username", &ss.PreferredUsername},
-	// } {
-	// 	if _, err := extractor.GetClaimInto(c.claim, c.dst); err != nil {
-	// 		return nil, err
-	// 	}
-	// }
-
-	// // `email_verified` must be present and explicitly set to `false` to be
-	// // considered unverified.
-	// verifyEmail := (p.EmailClaim == options.OIDCEmailClaim) && !p.AllowUnverifiedEmail
-
-	// if verifyEmail {
-	// 	var verified bool
-	// 	exists, err := extractor.GetClaimInto("email_verified", &verified)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-
-	// 	if exists && !verified {
-	// 		return nil, fmt.Errorf("email in id_token (%s) isn't verified", ss.Email)
-	// 	}
-	// }
 
 	return ss, nil
 }

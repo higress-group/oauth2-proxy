@@ -47,8 +47,6 @@ type Provider struct {
 	// SkipClaimsFromProfileURL allows to skip request to Profile URL for resolving claims not present in id_token
 	// default set to 'false'
 	SkipClaimsFromProfileURL bool `json:"skipClaimsFromProfileURL,omitempty"`
-	// ProtectedResource is the resource that is protected (Azure AD and ADFS only)
-	ProtectedResource string `json:"resource,omitempty"`
 	// ValidateURL is the access token validation endpoint
 	ValidateURL string `json:"validateURL,omitempty"`
 	// Scope is the OAuth scope specification
@@ -57,10 +55,7 @@ type Provider struct {
 	AllowedGroups []string `json:"allowedGroups,omitempty"`
 	// The code challenge method
 	CodeChallengeMethod string `json:"code_challenge_method,omitempty"`
-
-	// URL to call to perform backend logout, `{id_token}` would be replaced by the actual `id_token` if available in the session
-	BackendLogoutURL string `json:"backendLogoutURL"`
-
+	// Client redeem request timeout
 	RedeemTimeout uint32 `json:"redeemTimeout"`
 }
 
@@ -79,9 +74,6 @@ type OIDCOptions struct {
 	// IssuerURL is the OpenID Connect issuer URL
 	// eg: https://accounts.google.com
 	IssuerURL string `json:"issuerURL,omitempty"`
-	// InsecureAllowUnverifiedEmail prevents failures if an email address in an id_token is not verified
-	// default set to 'false'
-	InsecureAllowUnverifiedEmail bool `json:"insecureAllowUnverifiedEmail,omitempty"`
 	// InsecureSkipIssuerVerification skips verification of ID token issuers. When false, ID Token Issuers must match the OIDC discovery URL
 	// default set to 'false'
 	InsecureSkipIssuerVerification bool `json:"insecureSkipIssuerVerification,omitempty"`
@@ -121,14 +113,13 @@ func providerDefaults() Providers {
 		{
 			Type: "oidc",
 			OIDCConfig: OIDCOptions{
-				InsecureAllowUnverifiedEmail: false,
-				InsecureSkipNonce:            true,
-				SkipDiscovery:                false,
-				UserIDClaim:                  OIDCEmailClaim, // Deprecated: Use OIDCEmailClaim
-				EmailClaim:                   OIDCEmailClaim,
-				GroupsClaim:                  OIDCGroupsClaim,
-				AudienceClaims:               OIDCAudienceClaims,
-				ExtraAudiences:               []string{},
+				InsecureSkipNonce: true,
+				SkipDiscovery:     false,
+				UserIDClaim:       OIDCEmailClaim, // Deprecated: Use OIDCEmailClaim
+				EmailClaim:        OIDCEmailClaim,
+				GroupsClaim:       OIDCGroupsClaim,
+				AudienceClaims:    OIDCAudienceClaims,
+				ExtraAudiences:    []string{},
 			},
 		},
 	}

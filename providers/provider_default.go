@@ -63,9 +63,6 @@ func (p *ProviderData) Redeem(ctx context.Context, redirectURL, code, codeVerifi
 	if codeVerifier != "" {
 		params.Add("code_verifier", codeVerifier)
 	}
-	if p.ProtectedResource != nil && p.ProtectedResource.String() != "" {
-		params.Add("resource", p.ProtectedResource.String())
-	}
 
 	req, err := http.NewRequest("POST", p.RedeemURL.String(), strings.NewReader(params.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
