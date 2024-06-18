@@ -11,7 +11,6 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/higress-group/proxy-wasm-go-sdk v0.0.0-20240327114451-d6b7174a84fc
 	github.com/justinas/alice v1.2.0
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/ohler55/ojg v1.22.0
 	github.com/spf13/cast v1.6.0
 	github.com/tidwall/gjson v1.17.1

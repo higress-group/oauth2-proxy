@@ -3,7 +3,8 @@ package options
 import (
 	"fmt"
 
-	"github.com/mitchellh/mapstructure"
+	"oidc/pkg/mapstructure"
+
 	"github.com/tidwall/gjson"
 )
 
