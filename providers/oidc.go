@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"oidc/pkg/apis/options"
 	"oidc/pkg/apis/sessions"
@@ -83,18 +81,9 @@ func (p *OIDCProvider) Redeem(ctx context.Context, redirectURL, code, codeVerifi
 		params.Add("code_verifier", codeVerifier)
 	}
 
-	req, err := http.NewRequest("POST", p.RedeemURL.String(), strings.NewReader(params.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	var headerArray [][2]string
-	for key, values := range req.Header {
-		if len(values) > 0 {
-			headerArray = append(headerArray, [2]string{key, values[0]})
-		}
-	}
-	bodyBytes, err := io.ReadAll(req.Body)
-	req.Body.Close()
+	headers := [][2]string{{"Content-Type", "application/x-www-form-urlencoded"}}
 
-	client.Post(p.RedeemURL.String(), headerArray, bodyBytes, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
+	client.Post(p.RedeemURL.String(), headers, []byte(params.Encode()), func(statusCode int, responseHeaders http.Header, responseBody []byte) {
 		token, err := util.UnmarshalToken(responseHeaders, responseBody)
 		if err != nil {
 			util.SendError(err.Error(), nil, http.StatusInternalServerError)
@@ -166,18 +155,9 @@ func (p *OIDCProvider) redeemRefreshToken(ctx context.Context, s *sessions.Sessi
 	params.Add("refresh_token", s.RefreshToken)
 	params.Add("grant_type", "refresh_token")
 
-	req, err := http.NewRequest("POST", p.RedeemURL.String(), strings.NewReader(params.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	var headerArray [][2]string
-	for key, values := range req.Header {
-		if len(values) > 0 {
-			headerArray = append(headerArray, [2]string{key, values[0]})
-		}
-	}
-	bodyBytes, err := io.ReadAll(req.Body)
-	req.Body.Close()
+	headers := [][2]string{{"Content-Type", "application/x-www-form-urlencoded"}}
 
-	client.Post(p.RedeemURL.String(), headerArray, bodyBytes, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
+	client.Post(p.RedeemURL.String(), headers, []byte(params.Encode()), func(statusCode int, responseHeaders http.Header, responseBody []byte) {
 		token, err := util.UnmarshalToken(responseHeaders, responseBody)
 		if err != nil {
 			util.SendError(err.Error(), nil, http.StatusInternalServerError)
@@ -199,7 +179,7 @@ func (p *OIDCProvider) redeemRefreshToken(ctx context.Context, s *sessions.Sessi
 			s.PreferredUsername = newSession.PreferredUsername
 		}
 		s.AccessToken = newSession.AccessToken
-		if len(newSession.RefreshToken) > 0 {
+		if newSession.RefreshToken != "" {
 			s.RefreshToken = newSession.RefreshToken
 		}
 		s.CreatedAt = newSession.CreatedAt
