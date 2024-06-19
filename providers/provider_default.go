@@ -123,7 +123,7 @@ func (p *ProviderData) ValidateSession(ctx context.Context, s *sessions.SessionS
 }
 
 // RefreshSession refreshes the user's session
-func (p *ProviderData) RefreshSession(_ context.Context, _ *sessions.SessionState) (bool, error) {
+func (p *ProviderData) RefreshSession(_ context.Context, _ *sessions.SessionState, client wrapper.HttpClient, callback func(args ...interface{}), timeout uint32) (bool, error) {
 	return false, ErrNotImplemented
 }
 

@@ -23,6 +23,8 @@ func main() {
 		wrapper.ParseConfigBy(parseConfig),
 		// 为处理请求头，设置自定义函数
 		wrapper.ProcessRequestHeadersBy(onHttpRequestHeaders),
+		// 为处理响应头，设置自定义函数
+		wrapper.ProcessResponseHeadersBy(onHttpResponseHeaders),
 	)
 }
 
@@ -64,17 +66,24 @@ func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
 }
 
 func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrapper.Log) types.Action {
-
+	config.OidcHandler.Ctx = ctx
 	req := getHttpRequest()
 	rw := util.NewRecorder()
 
 	config.OidcHandler.serveMux.ServeHTTP(rw, req)
-
 	if code := rw.GetStatus(); code != 0 {
 		return types.ActionContinue
 	}
-
 	return types.ActionPause
+}
+
+func onHttpResponseHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrapper.Log) types.Action {
+	value := ctx.GetContext(SetCookieHeader)
+	if value != nil {
+		proxywasm.AddHttpResponseHeader(SetCookieHeader, value.(string))
+	}
+	config.OidcHandler.Ctx = nil
+	return types.ActionContinue
 }
 
 func getHttpRequest() *http.Request {

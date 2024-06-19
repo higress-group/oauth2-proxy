@@ -27,6 +27,7 @@ import (
 )
 
 const (
+	SetCookieHeader = "Set-Cookie"
 	schemeHTTP      = "http"
 	schemeHTTPS     = "https"
 	applicationJSON = "application/json"
@@ -47,6 +48,7 @@ var (
 type OAuthProxy struct {
 	CookieOptions *options.Cookie
 	Validator     func(string) bool
+	Ctx           wrapper.HttpContext
 
 	redirectURL         *url.URL // the url to receive requests at
 	relativeRedirectURL bool
@@ -92,11 +94,16 @@ func NewOAuthProxy(opts *options.Options, validator func(string) bool) (*OAuthPr
 	}
 	util.Logger.Infof("Cookie settings: name:%s secure(https):%v httponly:%v expiry:%s domains:%s path:%s samesite:%s refresh:%s", opts.Cookie.Name, opts.Cookie.Secure, opts.Cookie.HTTPOnly, opts.Cookie.Expire, strings.Join(opts.Cookie.Domains, ","), opts.Cookie.Path, opts.Cookie.SameSite, refresh)
 
+	serviceClient, err := opts.Service.NewService()
+	if err != nil {
+		return nil, err
+	}
+
 	preAuthChain, err := buildPreAuthChain(opts)
 	if err != nil {
 		return nil, fmt.Errorf("could not build pre-auth chain: %v", err)
 	}
-	sessionChain := buildSessionChain(opts, provider, sessionStore)
+	sessionChain := buildSessionChain(opts, provider, sessionStore, serviceClient)
 
 	redirectValidator := redirect.NewValidator(opts.WhitelistDomains)
 	appDirector := redirect.NewAppDirector(redirect.AppDirectorOpts{
@@ -104,10 +111,6 @@ func NewOAuthProxy(opts *options.Options, validator func(string) bool) (*OAuthPr
 		Validator:   redirectValidator,
 	})
 
-	serviceClient, err := opts.Service.NewService()
-	if err != nil {
-		return nil, err
-	}
 	p := &OAuthProxy{
 		CookieOptions: &opts.Cookie,
 		Validator:     validator,
@@ -166,14 +169,16 @@ func buildPreAuthChain(opts *options.Options) (alice.Chain, error) {
 	return chain, nil
 }
 
-func buildSessionChain(opts *options.Options, provider providers.Provider, sessionStore sessionsapi.SessionStore) alice.Chain {
+func buildSessionChain(opts *options.Options, provider providers.Provider, sessionStore sessionsapi.SessionStore, serviceClient wrapper.HttpClient) alice.Chain {
 	chain := alice.New()
 
 	chain = chain.Append(middleware.NewStoredSessionLoader(&middleware.StoredSessionLoaderOptions{
-		SessionStore:    sessionStore,
-		RefreshPeriod:   opts.Cookie.Refresh,
-		RefreshSession:  provider.RefreshSession,
-		ValidateSession: provider.ValidateSession,
+		SessionStore:          sessionStore,
+		RefreshPeriod:         opts.Cookie.Refresh,
+		RefreshSession:        provider.RefreshSession,
+		ValidateSession:       provider.ValidateSession,
+		RefreshClient:         serviceClient,
+		RefreshRequestTimeout: provider.Data().RedeemTimeout,
 	}))
 
 	return chain
@@ -335,12 +340,18 @@ func (p *OAuthProxy) OAuthCallback(rw http.ResponseWriter, req *http.Request) {
 // Proxy proxies the user request if the user is authenticated else it prompts
 // them to authenticate
 func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
-	session, err := p.getAuthenticatedSession(rw, req)
+	_, err := p.getAuthenticatedSession(rw, req)
 	switch {
 	case err == nil:
-		p.addHeadersForProxying(rw, session)
-		util.Logger.Infof("Authentication successfully.")
-		rw.WriteHeader(http.StatusOK)
+		if cookies, ok := rw.Header()[SetCookieHeader]; ok && len(cookies) > 0 {
+			newCookieValue := strings.Join(cookies, ",")
+			p.Ctx.SetContext(SetCookieHeader, newCookieValue)
+			modifyRequestCookie(req, p.CookieOptions.Name, newCookieValue)
+			util.Logger.Infof("Authentication and session refresh successfully .")
+		} else {
+			util.Logger.Infof("Authentication successfully.")
+			rw.WriteHeader(http.StatusOK)
+		}
 	case errors.Is(err, ErrNeedsLogin):
 		// we need to send the user to a login screen
 		if isAjax(req) {
@@ -466,18 +477,6 @@ func (p *OAuthProxy) ClearSessionCookie(rw http.ResponseWriter, req *http.Reques
 	return p.sessionStore.Clear(rw, req)
 }
 
-// addHeadersForProxying adds the appropriate headers the request / response for proxying
-func (p *OAuthProxy) addHeadersForProxying(rw http.ResponseWriter, session *sessionsapi.SessionState) {
-	if session == nil {
-		return
-	}
-	if session.Email == "" {
-		rw.Header().Set("GAP-Auth", session.User)
-	} else {
-		rw.Header().Set("GAP-Auth", session.Email)
-	}
-} // TODO: check if this is still needed
-
 func (p *OAuthProxy) redeemCode(req *http.Request, codeVerifier string, client wrapper.HttpClient, callback func(args ...interface{})) error {
 	code := req.Form.Get("code")
 	if code == "" {
@@ -527,13 +526,31 @@ func isAjax(req *http.Request) bool {
 func redirectToLocation(rw http.ResponseWriter, location string) {
 	headersMap := [][2]string{{"Location", location}}
 	for key, value := range rw.Header() {
-		if strings.EqualFold(key, "Set-Cookie") {
+		if strings.EqualFold(key, SetCookieHeader) {
 			for _, value := range value {
-				headersMap = append(headersMap, [2]string{"Set-Cookie", value})
+				headersMap = append(headersMap, [2]string{SetCookieHeader, value})
 			}
 		} else {
 			headersMap = append(headersMap, [2]string{key, strings.Join(value, ",")})
 		}
 	}
 	proxywasm.SendHttpResponse(http.StatusFound, headersMap, nil, -1)
+}
+
+func modifyRequestCookie(req *http.Request, cookieName, newValue string) {
+	var cookies []string
+	found := false
+	for _, cookie := range req.Cookies() {
+		// find specify cookie name
+		if cookie.Name == cookieName {
+			found = true
+			cookies = append(cookies, fmt.Sprintf("%s=%s", cookie.Name, newValue))
+		} else {
+			cookies = append(cookies, fmt.Sprintf("%s=%s", cookie.Name, cookie.Value))
+		}
+	}
+	if !found {
+		cookies = append(cookies, fmt.Sprintf("%s=%s", cookieName, newValue))
+	}
+	proxywasm.ReplaceHttpRequestHeader("Cookie", strings.Join(cookies, "; "))
 }
