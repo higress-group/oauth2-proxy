@@ -65,7 +65,8 @@ type OAuthProxy struct {
 	redirectValidator redirect.Validator
 	appDirector       redirect.AppDirector
 
-	encodeState bool
+	passAuthorization bool
+	encodeState       bool
 
 	client wrapper.HttpClient
 }
@@ -129,6 +130,7 @@ func NewOAuthProxy(opts *options.Options, validator func(string) bool) (*OAuthPr
 		redirectValidator: redirectValidator,
 		appDirector:       appDirector,
 		encodeState:       opts.EncodeState,
+		passAuthorization: opts.PassAuthorization,
 
 		client: serviceClient,
 	}
@@ -340,9 +342,12 @@ func (p *OAuthProxy) OAuthCallback(rw http.ResponseWriter, req *http.Request) {
 // Proxy proxies the user request if the user is authenticated else it prompts
 // them to authenticate
 func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
-	_, err := p.getAuthenticatedSession(rw, req)
+	session, err := p.getAuthenticatedSession(rw, req)
 	switch {
 	case err == nil:
+		if p.passAuthorization {
+			proxywasm.AddHttpRequestHeader("Authorization", fmt.Sprintf("%s %s", providers.TokenTypeBearer, session.IDToken))
+		}
 		if cookies, ok := rw.Header()[SetCookieHeader]; ok && len(cookies) > 0 {
 			newCookieValue := strings.Join(cookies, ",")
 			p.Ctx.SetContext(SetCookieHeader, newCookieValue)

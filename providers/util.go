@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	tokenTypeBearer = "Bearer"
-	tokenTypeToken  = "token"
+	TokenTypeBearer = "Bearer"
 
 	acceptHeader          = "Accept"
 	acceptApplicationJSON = "application/json"
@@ -29,7 +28,7 @@ func makeOIDCHeader(accessToken string) http.Header {
 	extraHeaders := map[string]string{
 		acceptHeader: acceptApplicationJSON,
 	}
-	return makeAuthorizationHeader(tokenTypeBearer, accessToken, extraHeaders)
+	return makeAuthorizationHeader(TokenTypeBearer, accessToken, extraHeaders)
 }
 
 func makeLoginURL(p *ProviderData, redirectURI, state string, extraParams url.Values) url.URL {

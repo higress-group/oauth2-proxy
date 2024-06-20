@@ -20,14 +20,6 @@ func loadLegacyOptions(input map[string]interface{}) (*Options, error) {
 
 	legacyOpts := NewLegacyOptions()
 
-	// configDecoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-	// 	DecodeHook: mapstructure.ComposeDecodeHookFunc(
-	// 		mapstructure.StringToSliceHookFunc(","),
-	// 		mapstructure.StringToTimeDurationHookFunc(),
-	// 	),
-	// 	Result: &legacyOpts,
-	// })
-
 	err := mapstructure.Decode(input, &legacyOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode input: %v", err)

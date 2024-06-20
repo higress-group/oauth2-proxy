@@ -29,12 +29,12 @@ type Options struct {
 
 	SkipAuthPreflight bool `mapstructure:"skip_auth_preflight"`
 	EncodeState       bool `mapstructure:"encode_state"`
-
-	VerifierInterval   int64
-	UpdateKeysInterval int64
+	PassAuthorization bool `mapstructure:"pass_authorization_header"`
 
 	// internal values that are set after config validation
-	redirectURL *url.URL // 私有字段通常不需要 mapstructure 标签
+	VerifierInterval   int64
+	UpdateKeysInterval int64
+	redirectURL        *url.URL // 私有字段通常不需要 mapstructure 标签
 }
 
 // Options for Getting internal values
@@ -51,7 +51,8 @@ func NewOptions() *Options {
 		Cookie:             cookieDefaults(),
 		Session:            sessionOptionsDefaults(),
 		SkipAuthPreflight:  false,
-		VerifierInterval:   24 * 60 * 60 * 1000,
-		UpdateKeysInterval: 15 * 60 * 1000,
+		PassAuthorization:  true,
+		VerifierInterval:   24 * 60 * 60 * 1000, // 24h
+		UpdateKeysInterval: 15 * 60 * 1000,      // 15m
 	}
 }
