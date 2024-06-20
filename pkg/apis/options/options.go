@@ -3,6 +3,7 @@ package options
 import (
 	"crypto"
 	"net/url"
+	"time"
 )
 
 // SignatureData holds hmacauth signature hash and key
@@ -31,8 +32,8 @@ type Options struct {
 	EncodeState       bool `mapstructure:"encode_state"`
 	PassAuthorization bool `mapstructure:"pass_authorization_header"`
 
-	VerifierInterval   int64 `mapstructure:"verifier_interval"`
-	UpdateKeysInterval int64 `mapstructure:"update_keys_interval"`
+	VerifierInterval   time.Duration `mapstructure:"verifier_interval"`
+	UpdateKeysInterval time.Duration `mapstructure:"update_keys_interval"`
 	// internal values that are set after config validation
 	redirectURL *url.URL // 私有字段通常不需要 mapstructure 标签
 }
@@ -52,7 +53,7 @@ func NewOptions() *Options {
 		Session:            sessionOptionsDefaults(),
 		SkipAuthPreflight:  false,
 		PassAuthorization:  true,
-		VerifierInterval:   24 * 60 * 60 * 1000, // 24h
-		UpdateKeysInterval: 15 * 60 * 1000,      // 15m
+		VerifierInterval:   24 * time.Hour,   // 24h
+		UpdateKeysInterval: 15 * time.Minute, // 15m
 	}
 }
