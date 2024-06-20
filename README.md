@@ -59,11 +59,9 @@ redirect_url: 'http://foo.bar.com/oauth2/callback'
 oidc_issuer_url: 'http://127.0.0.1:9090/realms/myrealm'
 client_id: 'myclient'
 client_secret: 'PgSvuK7M4GYMPUaO0naQteKhpWYDpBYE'
-scope: 'openid email'
-cookie_name: '_oauth2_proxy'
+scope: 'openid email offline_access'
 cookie_secret: 'nqavJrGvRmQxWwGNptLdyUVKcBNZ2b18Guc1n_8DCfY='
 cookie_secure: false
-cookie_httponly: true
 service_name: 'keycloak'
 service_port: 80
 service_source: 'ip'
@@ -126,16 +124,13 @@ oidc_issuer_url: 'https://dev-o43xb1mz7ya7ach4.us.auth0.com/'
 client_id: 'YagFqRD9tfNIaac5BamjhsSatjrAnsnZ'
 client_secret: 'ekqv5XoZuMFtYms1NszEqRx03qct6BPvGeJUeptNG4y09PrY16BKT9IWezTrrhJJ'
 scope: 'openid email'
-cookie_name: '_oauth2_proxy'
 cookie_secret: 'nqavJrGvRmQxWwGNptLdyUVKcBNZ2b18Guc1n_8DCfY='
 cookie_secure: false
-cookie_httponly: true
 service_domain: 'dev-o43xb1mz7ya7ach4.us.auth0.com'
 service_name: 'auth'
 service_port: 443
 service_source: 'dns'
 oidc_verifier_request_timeout: 2000
-redeem_timeout: 2000
 ```
 
 #### Auth0 Ingress 配置 
