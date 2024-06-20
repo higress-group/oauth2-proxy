@@ -31,10 +31,10 @@ type Options struct {
 	EncodeState       bool `mapstructure:"encode_state"`
 	PassAuthorization bool `mapstructure:"pass_authorization_header"`
 
+	VerifierInterval   int64 `mapstructure:"verifier_interval"`
+	UpdateKeysInterval int64 `mapstructure:"update_keys_interval"`
 	// internal values that are set after config validation
-	VerifierInterval   int64
-	UpdateKeysInterval int64
-	redirectURL        *url.URL // 私有字段通常不需要 mapstructure 标签
+	redirectURL *url.URL // 私有字段通常不需要 mapstructure 标签
 }
 
 // Options for Getting internal values
