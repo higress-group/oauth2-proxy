@@ -20,7 +20,7 @@
    >
    > location: `http://127.0.0.1:9090/realms/myrealm/protocol/openid-connect/auth?approval_prompt=force&client_id=myclient&redirect_uri=http%3A%2F%2Ffoo.bar.com%2Foauth2%2Fcallback&response_type=code&scope=openid+email&state=3Y9ARxuuh9m0q-RjdRhgNvKfo3soCB26-fho28gmGnw%3A%2Fheaders`
    >
-   > set-cookie:_oauth2_proxy_csrf=\*\*\*\*\*\*\*\*\*\*\*\*\*\*; Path=/; Expires=Fri, 21 Jun 2024 08:06:20 GMT; HttpOnly
+   >set-cookie:_oauth2_proxy_csrf=LPruATEDgcdmelr8zScD_ObhsbP4zSzvcgmPlcNDcJpFJ0OvhxP2hFotsU-kZnYxd5KsIjzeIXGTOjf8TKcbTHbDIt-aQoZORXI_0id3qeY0Jt78223DPeJ1xBqa8VO0UiEOUFOR53FGxirJOdKFxaAvxDFb1Ok=|1718962455|V1QGWyjQ4hMNOQ4Jtf17HeQJdVqHdt5d65uraFduMIU=; Path=/; Expires=Fri, 21 Jun 2024 08:06:20 GMT; HttpOnly
 
 3. 在登录页进行登录
 
@@ -29,7 +29,7 @@
 4. 携带授权跳转回Higress并携带了state参数用于验证CSRF Cookie，code用于交换Token
 
    > HTTP/1.1 302 Found
-   > 
+   >
    > location: `http://foo.bar.com/oauth2/callback?state=nT06xdCqn4IqemzBRV5hmO73U_hCjskrH_VupPqdcdw%3A%2Ffoo&session_state=d7ea733a-73f3-4838-9395-7172f334b54d&iss=http%3A%2F%2F127.0.0.1%3A9090%2Frealms%2Fmyrealm&code=1084eb9a-dc19-44fd-bcdd-9f2f8a494183.d7ea733a-73f3-4838-9395-7172f334b54d.f9b87a15-5b6e-4da9-bf9b-e7e539293fba`
 
 5. 利用授权交换ID Token和Access Token
