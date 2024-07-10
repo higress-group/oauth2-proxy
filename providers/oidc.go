@@ -191,33 +191,6 @@ func (p *OIDCProvider) redeemRefreshToken(ctx context.Context, s *sessions.Sessi
 	return nil
 }
 
-// CreateSessionFromToken converts Bearer IDTokens into sessions
-func (p *OIDCProvider) CreateSessionFromToken(ctx context.Context, token string) (*sessions.SessionState, error) {
-	idToken, err := p.Verifier.Verify(ctx, token)
-	if err != nil {
-		return nil, err
-	}
-
-	ss, err := p.buildSessionFromClaims(token, "")
-	if err != nil {
-		return nil, err
-	}
-
-	// Allow empty Email in Bearer case since we can't hit the ProfileURL
-	if ss.Email == "" {
-		ss.Email = ss.User
-	}
-
-	ss.AccessToken = token
-	ss.IDToken = token
-	ss.RefreshToken = ""
-
-	ss.CreatedAtNow()
-	ss.SetExpiresOn(idToken.Expiry)
-
-	return ss, nil
-}
-
 // createSession takes an oauth2.Token and creates a SessionState from it.
 // It alters behavior if called from Redeem vs Refresh
 func (p *OIDCProvider) createSession(ctx context.Context, token *util.Token, refresh bool) (*sessions.SessionState, error) {

@@ -53,7 +53,7 @@ func NewOptions() *Options {
 		Session:            sessionOptionsDefaults(),
 		SkipAuthPreflight:  false,
 		PassAuthorization:  true,
-		VerifierInterval:   24 * time.Hour,   // 24h
-		UpdateKeysInterval: 15 * time.Minute, // 15m
+		VerifierInterval:   30 * 24 * time.Hour, // 1 month
+		UpdateKeysInterval: 24 * time.Hour,      // 24 hours
 	}
 }

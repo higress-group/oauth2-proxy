@@ -33,7 +33,6 @@ type Provider interface {
 	Authorize(ctx context.Context, s *sessions.SessionState) (bool, error)
 	ValidateSession(ctx context.Context, s *sessions.SessionState) bool
 	RefreshSession(ctx context.Context, s *sessions.SessionState, client wrapper.HttpClient, callback func(args ...interface{}), timeout uint32) (bool, error)
-	CreateSessionFromToken(ctx context.Context, token string) (*sessions.SessionState, error)
 }
 
 func NewProvider(providerConfig options.Provider) (Provider, error) {

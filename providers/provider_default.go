@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strings"
 
-	"oidc/pkg/apis/middleware"
 	"oidc/pkg/apis/sessions"
 	"oidc/pkg/util"
 
@@ -125,12 +124,4 @@ func (p *ProviderData) ValidateSession(ctx context.Context, s *sessions.SessionS
 // RefreshSession refreshes the user's session
 func (p *ProviderData) RefreshSession(_ context.Context, _ *sessions.SessionState, client wrapper.HttpClient, callback func(args ...interface{}), timeout uint32) (bool, error) {
 	return false, ErrNotImplemented
-}
-
-// CreateSessionFromToken converts Bearer IDTokens into sessions
-func (p *ProviderData) CreateSessionFromToken(ctx context.Context, token string) (*sessions.SessionState, error) {
-	if p.Verifier != nil {
-		return middleware.CreateTokenToSessionFunc(p.Verifier.Verify)(ctx, token)
-	}
-	return nil, ErrNotImplemented
 }

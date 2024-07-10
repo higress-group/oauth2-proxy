@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"net/http"
 	"oidc/pkg/util"
-	"sync"
 	"time"
 
 	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
@@ -76,11 +75,10 @@ type RemoteKeySet struct {
 	ctx     context.Context
 	now     func() time.Time
 
-	// guard all other fields
-	mu sync.RWMutex
-
 	// A set of cached keys.
 	cachedKeys []jose.JSONWebKey
+
+	client wrapper.HttpClient
 }
 
 // paresdJWTKey is a context key that allows common setups to avoid parsing the
@@ -133,6 +131,7 @@ func (r *RemoteKeySet) keysFromCache() (keys []jose.JSONWebKey) {
 }
 
 func (r *RemoteKeySet) UpdateKeys(client wrapper.HttpClient, timeout uint32) error {
+	r.client = client
 	var keySet jose.JSONWebKeySet
 	client.Get(r.jwksURL, nil, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
 		if statusCode != http.StatusOK {

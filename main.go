@@ -55,11 +55,13 @@ func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
 	config.OidcHandler = oauthproxy
 
 	wrapper.RegisteTickFunc(opts.VerifierInterval.Milliseconds(), func() {
-		providers.NewVerifierFromConfig(config.Options.Providers[0], config.OidcHandler.provider.Data(), config.OidcHandler.client)
+		if config.OidcHandler.provider.Data().Verifier != nil {
+			providers.NewVerifierFromConfig(config.Options.Providers[0], config.OidcHandler.provider.Data(), config.OidcHandler.client)
+		}
 	})
 
 	wrapper.RegisteTickFunc(opts.UpdateKeysInterval.Milliseconds(), func() {
-		if *&config.OidcHandler.provider.Data().Verifier != nil {
+		if config.OidcHandler.provider.Data().Verifier != nil {
 			(*config.OidcHandler.provider.Data().Verifier.GetKeySet()).UpdateKeys(oauthproxy.client, config.Options.Providers[0].OIDCConfig.VerifierRequestTimeout)
 		}
 	})
