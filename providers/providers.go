@@ -86,7 +86,8 @@ func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, cli
 				p.SupportedCodeChallengeMethods = pkce.CodeChallengeAlgs
 			}
 			providerConfigInfoCheck(providerConfig, p)
-			(*p.Verifier.GetKeySet()).UpdateKeys(client, providerConfig.OIDCConfig.VerifierRequestTimeout)
+			(*p.Verifier.GetKeySet()).UpdateKeys(client, providerConfig.OIDCConfig.VerifierRequestTimeout, func(args ...interface{}) {})
+			p.StoredSession.RemoteKeySet = p.Verifier.GetKeySet()
 		}, providerConfig.OIDCConfig.VerifierRequestTimeout)
 		return nil
 	}
@@ -96,10 +97,11 @@ func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, cli
 
 func newProviderDataFromConfig(providerConfig options.Provider) (*ProviderData, error) {
 	p := &ProviderData{
-		Scope:         providerConfig.Scope,
-		ClientID:      providerConfig.ClientID,
-		ClientSecret:  providerConfig.ClientSecret,
-		RedeemTimeout: providerConfig.RedeemTimeout,
+		Scope:           providerConfig.Scope,
+		ClientID:        providerConfig.ClientID,
+		ClientSecret:    providerConfig.ClientSecret,
+		RedeemTimeout:   providerConfig.RedeemTimeout,
+		VerifierTimeout: providerConfig.OIDCConfig.VerifierRequestTimeout,
 	}
 
 	errs := providerConfigInfoCheck(providerConfig, p)

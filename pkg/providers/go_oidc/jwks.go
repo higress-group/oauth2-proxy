@@ -77,8 +77,6 @@ type RemoteKeySet struct {
 
 	// A set of cached keys.
 	cachedKeys []jose.JSONWebKey
-
-	client wrapper.HttpClient
 }
 
 // paresdJWTKey is a context key that allows common setups to avoid parsing the
@@ -130,8 +128,7 @@ func (r *RemoteKeySet) keysFromCache() (keys []jose.JSONWebKey) {
 	return r.cachedKeys
 }
 
-func (r *RemoteKeySet) UpdateKeys(client wrapper.HttpClient, timeout uint32) error {
-	r.client = client
+func (r *RemoteKeySet) UpdateKeys(client wrapper.HttpClient, timeout uint32, callback func(args ...interface{})) error {
 	var keySet jose.JSONWebKeySet
 	client.Get(r.jwksURL, nil, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
 		if statusCode != http.StatusOK {
@@ -140,6 +137,7 @@ func (r *RemoteKeySet) UpdateKeys(client wrapper.HttpClient, timeout uint32) err
 		}
 		json.Unmarshal(responseBody, &keySet)
 		r.cachedKeys = keySet.Keys
+		callback(true)
 	}, timeout)
 	return nil
 }

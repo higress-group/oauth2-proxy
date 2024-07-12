@@ -11,6 +11,7 @@ import (
 
 	"oidc/pkg/apis/options"
 	"oidc/pkg/apis/sessions"
+	"oidc/pkg/middleware"
 	oidc "oidc/pkg/providers/go_oidc"
 	internaloidc "oidc/pkg/providers/oidc"
 	"oidc/pkg/providers/util"
@@ -53,7 +54,9 @@ type ProviderData struct {
 	loginURLParameterDefaults  url.Values
 	loginURLParameterOverrides map[string]*regexp.Regexp
 
-	RedeemTimeout uint32
+	RedeemTimeout   uint32
+	VerifierTimeout uint32
+	StoredSession   *middleware.StoredSessionLoader
 }
 
 // Data returns the ProviderData

@@ -55,16 +55,16 @@ func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
 	config.OidcHandler = oauthproxy
 
 	wrapper.RegisteTickFunc(opts.VerifierInterval.Milliseconds(), func() {
-		if config.OidcHandler.provider.Data().Verifier != nil {
+		if config.OidcHandler.provider.Data().Verifier == nil {
 			providers.NewVerifierFromConfig(config.Options.Providers[0], config.OidcHandler.provider.Data(), config.OidcHandler.client)
 		}
 	})
 
-	wrapper.RegisteTickFunc(opts.UpdateKeysInterval.Milliseconds(), func() {
-		if config.OidcHandler.provider.Data().Verifier != nil {
-			(*config.OidcHandler.provider.Data().Verifier.GetKeySet()).UpdateKeys(oauthproxy.client, config.Options.Providers[0].OIDCConfig.VerifierRequestTimeout)
-		}
-	})
+	// wrapper.RegisteTickFunc(opts.UpdateKeysInterval.Milliseconds(), func() {
+	// 	if config.OidcHandler.provider.Data().Verifier != nil {
+	// 		(*config.OidcHandler.provider.Data().Verifier.GetKeySet()).UpdateKeys(oauthproxy.client, config.Options.Providers[0].OIDCConfig.VerifierRequestTimeout, func(args ...interface{}) {})
+	// 	}
+	// })
 	return nil
 }
 
@@ -76,7 +76,6 @@ func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrappe
 		config.OidcHandler.Ctx = ctx
 		req := getHttpRequest()
 		rw := util.NewRecorder()
-
 		config.OidcHandler.serveMux.ServeHTTP(rw, req)
 		if code := rw.GetStatus(); code != 0 {
 			return types.ActionContinue

@@ -6,6 +6,11 @@ import (
 
 // ResponseRecorder is an implementation of [http.ResponseWriter] that
 // records its mutations for later inspection in tests.
+
+const (
+	ResponseCode = "response_code"
+)
+
 type ResponseRecorder struct {
 	HeaderMap http.Header
 	Code      int
@@ -34,6 +39,7 @@ func (rw *ResponseRecorder) Write(buf []byte) (int, error) {
 
 // WriteHeader implements [http.ResponseWriter].
 func (rw *ResponseRecorder) WriteHeader(code int) {
+	rw.HeaderMap.Add(ResponseCode, string(code))
 	rw.Code = code
 }
 

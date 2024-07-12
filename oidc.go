@@ -177,15 +177,16 @@ func buildPreAuthChain(opts *options.Options) (alice.Chain, error) {
 func buildSessionChain(opts *options.Options, provider providers.Provider, sessionStore sessionsapi.SessionStore, serviceClient wrapper.HttpClient) alice.Chain {
 	chain := alice.New()
 
-	chain = chain.Append(middleware.NewStoredSessionLoader(&middleware.StoredSessionLoaderOptions{
+	ss, loadSession := middleware.NewStoredSessionLoader(&middleware.StoredSessionLoaderOptions{
 		SessionStore:          sessionStore,
 		RefreshPeriod:         opts.Cookie.Refresh,
 		RefreshSession:        provider.RefreshSession,
 		ValidateSession:       provider.ValidateSession,
 		RefreshClient:         serviceClient,
 		RefreshRequestTimeout: provider.Data().RedeemTimeout,
-	}))
-
+	})
+	chain = chain.Append(loadSession)
+	provider.Data().StoredSession = ss
 	return chain
 }
 
@@ -325,28 +326,36 @@ func (p *OAuthProxy) OAuthCallback(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		csrf.SetSessionNonce(session)
-		if !p.provider.ValidateSession(req.Context(), session) {
-			util.SendError(fmt.Sprintf("Session validation failed: %s", session), rw, http.StatusForbidden)
-			return
-		}
-		if !p.redirectValidator.IsValidRedirect(appRedirect) {
-			appRedirect = "/"
-		}
-		// set cookie, or deny
-		authorized, err := p.provider.Authorize(req.Context(), session)
-		if err != nil {
-			util.Logger.Errorf("Error with authorization: %v", err)
-		}
-		if p.Validator(session.Email) && authorized {
-			util.Logger.Infof("Authenticated successfully via OAuth2: %s", session)
-			err := p.SaveSession(rw, req, session)
-			if err != nil {
-				util.SendError(fmt.Sprintf("Error saving session state: %v", err), rw, http.StatusInternalServerError)
+
+		updateKeysCallback := func(args ...interface{}) {
+			if !p.provider.ValidateSession(req.Context(), session) {
+				util.SendError(fmt.Sprintf("Session validation failed: %s", session), rw, http.StatusForbidden)
 				return
 			}
-			redirectToLocation(rw, appRedirect)
+			if !p.redirectValidator.IsValidRedirect(appRedirect) {
+				appRedirect = "/"
+			}
+			// set cookie, or deny
+			authorized, err := p.provider.Authorize(req.Context(), session)
+			if err != nil {
+				util.Logger.Errorf("Error with authorization: %v", err)
+			}
+			if p.Validator(session.Email) && authorized {
+				util.Logger.Infof("Authenticated successfully via OAuth2: %s", session)
+				err := p.SaveSession(rw, req, session)
+				if err != nil {
+					util.SendError(fmt.Sprintf("Error saving session state: %v", err), rw, http.StatusInternalServerError)
+					return
+				}
+				redirectToLocation(rw, appRedirect)
+			} else {
+				util.SendError("Invalid authentication via OAuth2: unauthorized", rw, http.StatusForbidden)
+			}
+		}
+		if _, err := (*p.provider.Data().Verifier.GetKeySet()).VerifySignature(req.Context(), session.IDToken); err != nil {
+			(*p.provider.Data().Verifier.GetKeySet()).UpdateKeys(p.client, p.provider.Data().VerifierTimeout, updateKeysCallback)
 		} else {
-			util.SendError("Invalid authentication via OAuth2: unauthorized", rw, http.StatusForbidden)
+			updateKeysCallback()
 		}
 	}
 
@@ -363,6 +372,7 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 	session, err := p.getAuthenticatedSession(rw, req)
 	switch {
 	case err == nil:
+		rw.WriteHeader(http.StatusOK)
 		if p.passAuthorization {
 			proxywasm.AddHttpRequestHeader("Authorization", fmt.Sprintf("%s %s", providers.TokenTypeBearer, session.IDToken))
 		}
@@ -373,7 +383,6 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 			util.Logger.Infof("Authentication and session refresh successfully .")
 		} else {
 			util.Logger.Infof("Authentication successfully.")
-			rw.WriteHeader(http.StatusOK)
 		}
 	case errors.Is(err, ErrNeedsLogin):
 		// we need to send the user to a login screen
@@ -387,7 +396,13 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 		// the user did not explicitly start the login flow
 		p.doOAuthStart(rw, req, nil)
 	case errors.Is(err, ErrAccessDenied):
-		util.SendError("The session failed authorization checks", rw, http.StatusForbidden)
+		if cookies, ok := rw.Header()[SetCookieHeader]; ok && len(cookies) > 0 {
+			newCookieValue := strings.Join(cookies, ",")
+			responseHeaders := [][2]string{{SetCookieHeader, newCookieValue}}
+			proxywasm.SendHttpResponse(http.StatusForbidden, responseHeaders, []byte("The session failed authorization checks. clear the cookie"), -1)
+		} else {
+			util.SendError("The session failed authorization checks", rw, http.StatusForbidden)
+		}
 	default:
 		// unknown error
 		util.SendError(fmt.Sprintf("Unexpected internal error: %v", err), rw, http.StatusInternalServerError)
@@ -416,7 +431,6 @@ func (p *OAuthProxy) getAuthenticatedSession(rw http.ResponseWriter, req *http.R
 	if err != nil {
 		util.Logger.Errorf("Error with authorization: %v", err)
 	}
-
 	if invalidEmail || !authorized {
 		cause := "unauthorized"
 		if invalidEmail {

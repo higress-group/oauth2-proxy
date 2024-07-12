@@ -12,7 +12,6 @@ import (
 	"oidc/pkg/util"
 
 	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
-	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
 )
 
 // OIDCProvider represents an OIDC based Identity Provider
@@ -89,12 +88,19 @@ func (p *OIDCProvider) Redeem(ctx context.Context, redirectURL, code, codeVerifi
 			util.SendError(err.Error(), nil, http.StatusInternalServerError)
 			return
 		}
-		session, err := p.createSession(ctx, token, false)
-		if err != nil {
-			util.SendError(err.Error(), nil, http.StatusInternalServerError)
-			return
+		redeemCallback := func(args ...interface{}) {
+			session, err := p.createSession(ctx, token, false)
+			if err != nil {
+				util.SendError(err.Error(), nil, http.StatusInternalServerError)
+				return
+			}
+			callback(session)
 		}
-		callback(session)
+		if _, err := (*p.Verifier.GetKeySet()).VerifySignature(ctx, getIDToken(token)); err != nil {
+			(*p.Verifier.GetKeySet()).UpdateKeys(client, timeout, redeemCallback)
+		} else {
+			redeemCallback()
+		}
 	}, timeout)
 
 	return nil
@@ -163,29 +169,35 @@ func (p *OIDCProvider) redeemRefreshToken(ctx context.Context, s *sessions.Sessi
 			util.SendError(err.Error(), nil, http.StatusInternalServerError)
 			return
 		}
-		newSession, err := p.createSession(ctx, token, true)
-		if err != nil {
-			util.SendError(err.Error(), nil, http.StatusInternalServerError)
-			return
+		redeemRefreshCallBack := func(args ...interface{}) {
+			newSession, err := p.createSession(ctx, token, true)
+			if err != nil {
+				util.SendError(err.Error(), nil, http.StatusInternalServerError)
+				return
+			}
+			// It's possible that if the refresh token isn't in the token response the
+			// session will not contain an id token.
+			// If it doesn't it's probably better to retain the old one
+			if newSession.IDToken != "" {
+				s.IDToken = newSession.IDToken
+				s.Email = newSession.Email
+				s.User = newSession.User
+				s.Groups = newSession.Groups
+				s.PreferredUsername = newSession.PreferredUsername
+			}
+			s.AccessToken = newSession.AccessToken
+			if newSession.RefreshToken != "" {
+				s.RefreshToken = newSession.RefreshToken
+			}
+			s.CreatedAt = newSession.CreatedAt
+			s.ExpiresOn = newSession.ExpiresOn
+			callback(s, true)
 		}
-		// It's possible that if the refresh token isn't in the token response the
-		// session will not contain an id token.
-		// If it doesn't it's probably better to retain the old one
-		if newSession.IDToken != "" {
-			s.IDToken = newSession.IDToken
-			s.Email = newSession.Email
-			s.User = newSession.User
-			s.Groups = newSession.Groups
-			s.PreferredUsername = newSession.PreferredUsername
+		if _, err := (*p.Verifier.GetKeySet()).VerifySignature(ctx, getIDToken(token)); err != nil {
+			(*p.Verifier.GetKeySet()).UpdateKeys(client, timeout, redeemRefreshCallBack)
+		} else {
+			redeemRefreshCallBack()
 		}
-		s.AccessToken = newSession.AccessToken
-		if newSession.RefreshToken != "" {
-			s.RefreshToken = newSession.RefreshToken
-		}
-		s.CreatedAt = newSession.CreatedAt
-		s.ExpiresOn = newSession.ExpiresOn
-		callback(s, ctx)
-		proxywasm.ResumeHttpRequest()
 	}, timeout)
 
 	return nil
