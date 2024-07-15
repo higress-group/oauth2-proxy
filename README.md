@@ -129,6 +129,8 @@
 | service_name                  | string       | registered name of the OIDC service, e.g. `auth.dns`, `keycloak.static` |                   |
 | service_port                  | int64        | service port of the OIDC service                             |                   |
 | service_host                  | string       | host of the OIDC service when type is static ip              |                   |
+| match_type                    | string       | match type (whitelist or blacklist)                          | `"whitelist"`     |
+| match_list                    | rule\|list   | a list of (match_rule_domain, match_rule_path, and match_rule_type). |                   |
 
 ### 生成 Cookie Secret
 
@@ -210,6 +212,11 @@ service_port: 443
 oidc_verifier_request_timeout: 2000
 whitelist_domains:
     - 'dev-o43xb1mz7ya7ach4.us.auth0.com'
+match_type: 'blacklist'
+match_list:
+    - match_rule_domain: '*.bar.com'
+      match_rule_path: '/headers'
+      match_rule_type: 'exact'
 ```
 
 **注**：必须先配置服务来源及oidc provider ingress，wasm插件在初始化时需要访问配置的服务获取openid-configuration
@@ -284,6 +291,11 @@ service_host: '127.0.0.1:9090'
 oidc_verifier_request_timeout: 2000
 whitelist_domains:
     - '127.0.0.1:9090'
+match_type: 'blacklist'
+match_list:
+    - match_rule_domain: '*.bar.com'
+      match_rule_path: '/headers'
+      match_rule_type: 'exact'
 ```
 
 #### 访问服务页面，未登陆的话进行跳转
