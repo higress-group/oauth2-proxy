@@ -13,6 +13,7 @@
 </p>
 
 
+
 #### OIDC 流程解析
 
 1. 模拟用户访问对应服务api
@@ -31,7 +32,7 @@
      --data "response_type=code" \
      --data "scope=openid+email+offline_access" \
      --data "state=nT06xdCqn4IqemzBRV5hmO73U_hCjskrH_VupPqdcdw%3A%2Ffoo" \
-    	--header "Set-Cookie: _oauth2_proxy_csrf=LPruATEDgcdmelr8zScD_ObhsbP4zSzvcgmPlcNDcJpFJ0OvhxP2hFotsU-kZnYxd5KsIjzeIXGTOjf8TKcbTHbDIt-aQoZORXI_0id3qeY0Jt78223DPeJ1xBqa8VO0UiEOUFOR53FGxirJOdKFxaAvxDFb1Ok=|1718962455|V1QGWyjQ4hMNOQ4Jtf17HeQJdVqHdt5d65uraFduMIU=; Path=/; Expires=Fri, 21 Jun 2024 08:06:20 GMT; HttpOnly"
+      --header "Set-Cookie: _oauth2_proxy_csrf=LPruATEDgcdmelr8zScD_ObhsbP4zSzvcgmPlcNDcJpFJ0OvhxP2hFotsU-kZnYxd5KsIjzeIXGTOjf8TKcbTHbDIt-aQoZORXI_0id3qeY0Jt78223DPeJ1xBqa8VO0UiEOUFOR53FGxirJOdKFxaAvxDFb1Ok=|1718962455|V1QGWyjQ4hMNOQ4Jtf17HeQJdVqHdt5d65uraFduMIU=; Path=/; Expires=Fri, 21 Jun 2024 08:06:20 GMT; HttpOnly"
    ```
 
 3. 用户在登录页进行登录
@@ -43,7 +44,7 @@
    ```shell
    curl --url "http://foo.bar.com/oauth2/callback" \
      --data "state=nT06xdCqn4IqemzBRV5hmO73U_hCjskrH_VupPqdcdw%3A%2Ffoo" \
-   	--data "code=0bdopoS2c2lx95u7iO0OH9kY1TvaEdJHo4lB6CT2_qVFm"
+    --data "code=0bdopoS2c2lx95u7iO0OH9kY1TvaEdJHo4lB6CT2_qVFm"
    ```
 
 5. 利用授权交换id_token和access_token
@@ -131,6 +132,9 @@
 | service_host                  | string       | host of the OIDC service when type is static ip              |                   |
 | match_type                    | string       | match type (whitelist or blacklist)                          | `"whitelist"`     |
 | match_list                    | rule\|list   | a list of (match_rule_domain, match_rule_path, and match_rule_type). |                   |
+| match_rule_domain             | string       | match rule domain, support wildcard pattern such as `*.bar.com` |                   |
+| match_rule_path               | string       | match rule path such as `/headers`                           |                   |
+| match_rule_type               | string       | match rule type can be `exact` or `prefix` or `regex`        |                   |
 
 ### 生成 Cookie Secret
 
