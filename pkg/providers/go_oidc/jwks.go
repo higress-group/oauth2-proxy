@@ -132,7 +132,7 @@ func (r *RemoteKeySet) UpdateKeys(client wrapper.HttpClient, timeout uint32, cal
 	var keySet jose.JSONWebKeySet
 	client.Get(r.jwksURL, nil, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
 		if statusCode != http.StatusOK {
-			util.Logger.Errorf("openid-configuration http call failed, status: %d", statusCode)
+			util.Logger.Errorf("RemoteKeySet UpdateKeys http call failed, status: %d", statusCode)
 			return
 		}
 		json.Unmarshal(responseBody, &keySet)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"oidc/pkg/apis/options"
@@ -76,9 +77,14 @@ func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrappe
 		config.OidcHandler.Ctx = ctx
 		req := getHttpRequest()
 		rw := util.NewRecorder()
-		config.OidcHandler.serveMux.ServeHTTP(rw, req)
-		if code := rw.GetStatus(); code != 0 {
+		if options.IsAllowedByMode(req.URL.Host, req.URL.Path, config.Options.MatchRules, config.Options.ProxyPrefix) {
+			util.Logger.Infof("request is allowed by mode %s", config.Options.MatchRules.Mode)
 			return types.ActionContinue
+		} else {
+			config.OidcHandler.serveMux.ServeHTTP(rw, req)
+			if code := rw.GetStatus(); code != 0 {
+				return types.ActionContinue
+			}
 		}
 	}
 	return types.ActionPause
@@ -102,17 +108,21 @@ func validateVerifier(OidcHandler *OAuthProxy) error {
 
 func getHttpRequest() *http.Request {
 	headers, _ := proxywasm.GetHttpRequestHeaders()
-
-	var method, path string
+	var method, path, authority, scheme string
 	for _, header := range headers {
 		switch header[0] {
 		case ":method":
 			method = header[1]
 		case ":path":
 			path = header[1]
+		case ":authority":
+			authority = header[1]
+		case ":scheme":
+			scheme = header[1]
 		}
 	}
-	parsedURL, _ := url.Parse(path)
+	rawURL := fmt.Sprintf("%s://%s%s", scheme, authority, path)
+	parsedURL, _ := url.Parse(rawURL)
 
 	req := &http.Request{
 		Method: method,

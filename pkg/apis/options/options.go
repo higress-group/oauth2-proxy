@@ -22,9 +22,10 @@ type Options struct {
 
 	WhitelistDomains []string `mapstructure:"whitelist_domains"`
 
-	Cookie  Cookie         `mapstructure:",squash"`
-	Session SessionOptions `mapstructure:",squash"`
-	Service Service        `mapstructure:",squash"`
+	Cookie     Cookie         `mapstructure:",squash"`
+	Session    SessionOptions `mapstructure:",squash"`
+	Service    Service        `mapstructure:",squash"`
+	MatchRules MatchRules     `mapstructure:",squash"`
 
 	Providers Providers
 
@@ -55,5 +56,6 @@ func NewOptions() *Options {
 		PassAuthorization:  true,
 		VerifierInterval:   30 * 24 * time.Hour, // 1 month
 		UpdateKeysInterval: 24 * time.Hour,      // 24 hours
+		MatchRules:         matchRulesDefaults(),
 	}
 }
