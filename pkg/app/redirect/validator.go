@@ -44,18 +44,12 @@ func (v *validator) IsValidRedirect(redirect string) bool {
 	case strings.HasPrefix(redirect, "/") && !strings.HasPrefix(redirect, "//") && !invalidRedirectRegex.MatchString(redirect):
 		return true
 	case strings.HasPrefix(redirect, "http://") || strings.HasPrefix(redirect, "https://"):
-		redirectURL, err := url.Parse(redirect)
+		_, err := url.Parse(redirect)
 		if err != nil {
 			util.Logger.Errorf("Rejecting invalid redirect %q: scheme unsupported or missing", redirect)
 			return false
 		}
-
-		if util.IsEndpointAllowed(redirectURL, v.allowedDomains) {
-			return true
-		}
-
-		util.Logger.Infof("Rejecting invalid redirect %q: domain / port not in whitelist", redirect)
-		return false
+		return true
 	default:
 		util.Logger.Infof("Rejecting invalid redirect %q: not an absolute or relative URL", redirect)
 		return false

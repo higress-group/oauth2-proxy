@@ -163,7 +163,7 @@ func (p *OAuthProxy) buildProxySubRouter(s *mux.Router) {
 	s.Path(oauthStartPath).HandlerFunc(p.OAuthStart)
 	s.Path(oauthCallbackPath).HandlerFunc(p.OAuthCallback)
 
-	s.Path(signOutPath).HandlerFunc(p.SignOut)
+	s.Path(signOutPath).Handler(p.sessionChain.ThenFunc(p.SignOut))
 }
 
 // buildPreAuthChain constructs a chain that should process every request before
@@ -202,6 +202,17 @@ func (p *OAuthProxy) SignOut(rw http.ResponseWriter, req *http.Request) {
 		util.Logger.Errorf("Error clearing session cookie: %v", err)
 		return
 	}
+	// odic hint_token_hint used to logout without promotion.
+	session, err := p.getAuthenticatedSession(rw, req)
+
+	values := url.Values{}
+	if session != nil {
+		values.Add("id_token_hint", session.IDToken)
+	}
+	if len(values) > 0 {
+		redirect = redirect + "?" + values.Encode()
+	}
+
 	redirectToLocation(rw, redirect)
 }
 
