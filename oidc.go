@@ -209,8 +209,21 @@ func (p *OAuthProxy) SignOut(rw http.ResponseWriter, req *http.Request) {
 	if session != nil {
 		values.Add("id_token_hint", session.IDToken)
 	}
+
 	if len(values) > 0 {
-		redirect = redirect + "?" + values.Encode()
+		redirectURL, err := url.Parse(redirect)
+		if err != nil {
+			util.Logger.Errorf("Error parsing redirect: %v", err)
+			return
+		}
+		query := redirectURL.Query()
+		if len(query) > 0 || redirectURL.Fragment != "" {
+			// If there are existing query parameters or a fragment, use "&"
+			redirect = redirect + "&" + values.Encode()
+		} else {
+			// If there are no query parameters or fragment, use "?"
+			redirect = redirect + "?" + values.Encode()
+		}
 	}
 
 	redirectToLocation(rw, redirect)
