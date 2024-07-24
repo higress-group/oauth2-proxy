@@ -6,14 +6,11 @@
 
 ### OIDC 流程
 
-#### 流程图
+#### OIDC 流程图
 
 <p align="center">
   <img src="https://gw.alicdn.com/imgextra/i4/O1CN01McjXP51EWT9dMxQm4_!!6000000000359-2-tps-1803-2018.png" alt="oidc_process" style="zoom: 33%;" />
 </p>
-
-
-
 
 #### OIDC 流程解析
 
@@ -136,7 +133,7 @@
 | match_rule_path               | string       | match rule path such as `/headers`                           |                   |
 | match_rule_type               | string       | match rule type can be `exact` or `prefix` or `regex`        |                   |
 
-### 生成 Cookie Secret
+### 生成 Cookie 密钥
 
 ``` python
 python -c 'import os,base64; print(base64.urlsafe_b64encode(os.urandom(32)).decode())'
@@ -203,32 +200,6 @@ X-Auth-Request-Redirect: https://my-oidc-provider.example.com/sign_out_page
 
 ![auth0 create](https://gw.alicdn.com/imgextra/i1/O1CN01p9y0jF1tfzdXTzNYm_!!6000000005930-0-tps-3362-670.jpg)
 
-#### Auth0 Ingress 配置 
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: auth0-ingress
-  annotations:
-    higress.io/destination: auth.dns
-    higress.io/backend-protocol: "HTTPS"
-    higress.io/ignore-path-case: "false"
-spec:
-  ingressClassName: higress
-  rules:
-    - host: foo.bar.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              resource:
-                apiGroup: networking.higress.io
-                kind: McpBridge
-                name: default
-```
-
 #### Wasm 插件配置
 
 ```yaml
@@ -247,7 +218,7 @@ match_list:
       match_rule_type: 'prefix'
 ```
 
-**注**：必须先配置服务来源及oidc provider ingress，wasm插件在初始化时需要访问配置的服务获取openid-configuration
+**注**：必须先配置服务来源，wasm插件在初始化时需要访问配置的服务获取openid-configuration
 
 #### 访问服务页面，未登陆的话进行跳转
 
@@ -288,32 +259,6 @@ http://foo.bar.com/oauth2/sign_out?rd=https%3A%2F%2Fdev-o43xb1mz7ya7ach4.us.auth
 * 在Higress服务来源中创建Keycloak固定地址服务
 
 ![keycloak create](https://gw.alicdn.com/imgextra/i1/O1CN01p9y0jF1tfzdXTzNYm_!!6000000005930-0-tps-3362-670.jpg)
-
-#### Keycloak Ingress 配置 
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: keycloak-ingress
-  annotations:
-    higress.io/destination: keycloak.static
-    higress.io/backend-protocol: "HTTP"
-    higress.io/ignore-path-case: "false"
-spec:
-  ingressClassName: higress
-  rules:
-    - host: foo.bar.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              resource:
-                apiGroup: networking.higress.io
-                kind: McpBridge
-                name: default
-```
 
 #### Wasm 插件配置
 
