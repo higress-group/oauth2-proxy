@@ -201,7 +201,7 @@ X-Auth-Request-Redirect: https://my-oidc-provider.example.com/sign_out_page
 
 * 在Higress服务来源中创建auth0 DNS来源
 
-![auth0 service](https://gw.alicdn.com/imgextra/i1/O1CN01p9y0jF1tfzdXTzNYm_!!6000000005930-0-tps-3362-670.jpg)
+![auth0 create](https://gw.alicdn.com/imgextra/i1/O1CN01p9y0jF1tfzdXTzNYm_!!6000000005930-0-tps-3362-670.jpg)
 
 #### Auth0 Ingress 配置 
 
@@ -257,7 +257,7 @@ match_list:
 
 headers中可以看到携带了_oauth2_proxy 的cookie用于下次登陆访问，Authorization对应IDToken用于后端服务获得用户信息
 
-![auth0 result](https://img.alicdn.com/imgextra/i3/O1CN01hhRa4s1SIBQakFOAf_!!6000000002223-0-tps-3840-2160.jpg)
+![auth0 service](https://gw.alicdn.com/imgextra/i3/O1CN01hhRa4s1SIBQakFOAf_!!6000000002223-0-tps-3840-2160.jpg)
 
 #### 访问登出跳转到登出页面
 
@@ -265,7 +265,7 @@ headers中可以看到携带了_oauth2_proxy 的cookie用于下次登陆访问�
 http://foo.bar.com/oauth2/sign_out?rd=https%3A%2F%2Fdev-o43xb1mz7ya7ach4.us.auth0.com%2Foidc%2Flogout
 ```
 
-![auth0 result](https://img.alicdn.com/imgextra/i3/O1CN01UntF4x1UqC4StMqtT_!!6000000002568-0-tps-3840-2160.jpg)
+![auth0 logout](https://gw.alicdn.com/imgextra/i3/O1CN01UntF4x1UqC4StMqtT_!!6000000002568-0-tps-3840-2160.jpg)
 
 #### 访问登出跳转到登出页面(携带post_logout_redirect_uri参数跳转指定uri)
 
@@ -275,7 +275,7 @@ http://foo.bar.com/oauth2/sign_out?rd=https%3A%2F%2Fdev-o43xb1mz7ya7ach4.us.auth
 
 注：post_logout_redirect_uri跳转的uri需要在OIDC Provider Allowed URLs处配置才可以正常跳转
 
-![auth0 result](https://gw.alicdn.com/imgextra/i1/O1CN01AtZ2cd1JlBxsgyCjG_!!6000000001068-0-tps-3840-2160.jpg)
+![auth0 logout redirect](https://gw.alicdn.com/imgextra/i1/O1CN01AtZ2cd1JlBxsgyCjG_!!6000000001068-0-tps-3840-2160.jpg)
 
 ### OIDC with keycloak
 
@@ -287,7 +287,7 @@ http://foo.bar.com/oauth2/sign_out?rd=https%3A%2F%2Fdev-o43xb1mz7ya7ach4.us.auth
 
 * 在Higress服务来源中创建Keycloak固定地址服务
 
-![keycloak service](https://gw.alicdn.com/imgextra/i1/O1CN01p9y0jF1tfzdXTzNYm_!!6000000005930-0-tps-3362-670.jpg)
+![keycloak create](https://gw.alicdn.com/imgextra/i1/O1CN01p9y0jF1tfzdXTzNYm_!!6000000005930-0-tps-3362-670.jpg)
 
 #### Keycloak Ingress 配置 
 
@@ -340,7 +340,7 @@ match_list:
 
 #### 登陆成功跳转到服务页面
 
-![keycloak service](https://img.alicdn.com/imgextra/i3/O1CN01hhRa4s1SIBQakFOAf_!!6000000002223-0-tps-3840-2160.jpg)
+![keycloak service](https://gw.alicdn.com/imgextra/i3/O1CN01hhRa4s1SIBQakFOAf_!!6000000002223-0-tps-3840-2160.jpg)
 
 #### 访问登出跳转到登出页面
 
@@ -348,7 +348,7 @@ match_list:
 http://foo.bar.com/oauth2/sign_out?rd=http%3A%2F%2F127.0.0.1:9090%2Frealms%2Fmyrealm%2Fprotocol%2Fopenid-connect%2Flogout
 ```
 
-![auth0 result](https://img.alicdn.com/imgextra/i4/O1CN01kQwqB523OiroOWMgM_!!6000000007246-0-tps-3840-2160.jpg)
+![keycloak logout](https://gw.alicdn.com/imgextra/i4/O1CN01kQwqB523OiroOWMgM_!!6000000007246-0-tps-3840-2160.jpg)
 
 #### 访问登出跳转到登出页面(携带post_logout_redirect_uri参数跳转指定uri)
 
@@ -356,4 +356,4 @@ http://foo.bar.com/oauth2/sign_out?rd=http%3A%2F%2F127.0.0.1:9090%2Frealms%2Fmyr
 http://foo.bar.com/oauth2/sign_out?rd=http%3A%2F%2F127.0.0.1:9090%2Frealms%2Fmyrealm%2Fprotocol%2Fopenid-connect%2Flogout%3Fpost_logout_redirect_uri%3Dhttp%3A%2F%2Ffoo.bar.com%2Ffoo
 ```
 
-![keycloak service](https://gw.alicdn.com/imgextra/i1/O1CN01AtZ2cd1JlBxsgyCjG_!!6000000001068-0-tps-3840-2160.jpg)
+![keycloak logout redirect](https://gw.alicdn.com/imgextra/i1/O1CN01AtZ2cd1JlBxsgyCjG_!!6000000001068-0-tps-3840-2160.jpg)
