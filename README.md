@@ -257,7 +257,7 @@ match_list:
 
 headers中可以看到携带了_oauth2_proxy 的cookie用于下次登陆访问，Authorization对应IDToken用于后端服务获得用户信息
 
-![auth0 service](https://gw.alicdn.com/imgextra/i3/O1CN01hhRa4s1SIBQakFOAf_!!6000000002223-0-tps-3840-2160.jpg)
+![auth0 service](https://gw.alicdn.com/imgextra/i1/O1CN01vyrB6u1xPHep1RRqb_!!6000000006435-2-tps-3840-2160.png)
 
 #### 访问登出跳转到登出页面
 
@@ -340,7 +340,7 @@ match_list:
 
 #### 登陆成功跳转到服务页面
 
-![keycloak service](https://gw.alicdn.com/imgextra/i3/O1CN01hhRa4s1SIBQakFOAf_!!6000000002223-0-tps-3840-2160.jpg)
+![keycloak service](https://gw.alicdn.com/imgextra/i1/O1CN01vyrB6u1xPHep1RRqb_!!6000000006435-2-tps-3840-2160.png)
 
 #### 访问登出跳转到登出页面
 
