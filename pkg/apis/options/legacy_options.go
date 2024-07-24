@@ -72,7 +72,7 @@ func legacyProviderDefaults() LegacyProvider {
 		OIDCGroupsClaim:                    OIDCGroupsClaim,
 		OIDCAudienceClaims:                 []string{"aud"},
 		OIDCExtraAudiences:                 nil,
-		OIDCVerifierRequestTimeout:         500,
+		OIDCVerifierRequestTimeout:         2000,
 		LoginURL:                           "",
 		RedeemURL:                          "",
 		ProfileURL:                         "",

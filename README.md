@@ -14,12 +14,13 @@
 
 
 
+
 #### OIDC 流程解析
 
 1. 模拟用户访问对应服务api
 
    ```shell
-   curl --url "foo.bar.com/foo"
+   curl --url "foo.bar.com/headers"
    ```
 
 2. Higress重定向到OIDC Provider登录页同时携带client_id、response_type、scope等OIDC认证的参数并设置csrf cookie防御CSRF攻击
@@ -84,7 +85,7 @@
 7. 携带 Authorization的标头对应id_token访问对应api
 
    ```shell
-   curl --url "foo.bar.com/foo"
+   curl --url "foo.bar.com/headers"
      --data "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imc1Z1ExSF9ZbTY0WUlvVkQwSVpXTCJ9.eyJlbWFpbCI6IjE2MDExNTYyNjhAcXEuY29tIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJpc3MiOiJodHRwczovL2Rldi1vNDN4YjFtejd5YTdhY2g0LnVzLmF1dGgwLmNvbS8iLCJhdWQiOiJZYWdGcVJEOXRmTklhYWM1QmFtamhzU2F0anJBbnNuWiIsImlhdCI6MTcxOTE5ODYzOCwiZXhwIjoxNzE5MjM0NjM4LCJzdWIiOiJhdXRoMHw2NjVkNzFlNzRjMTMxMTc3YmU2NmU2MDciLCJzaWQiOiJjdDJVOF9ZUS16VDdFOGkwRTNNeUstejc5ZGlWUWhhVSJ9.gfzXKJ0FeqzYqOUDLQHWcUG19IOLqkpLN09xTmIat0umrlGV5VNSumgWH3XJmmwnhdb8AThH3Jf-7kbRJzu4rM-BbGbFTRBTzNHeUajFOFrIgld5VENQ_M_sXHkTp0psWKSr9vF24kmilCfSbvC5lBKjt878ljZ7-xteWuaUYOMUdcJb4DSv0-zjX01sonJxYamTlhji3M4TAW7VwhwqyZt8dBhVSNaRw1wUKj-M1JrBDLyx65sroZtSqVA0udIrqMHEbWYb2de7JjzlqG003HRMzwOm7OXgEd5ZVFqgmBLosgixOU5DJ4A26nlqK92Sp6VqDMRvA-3ym8W_m-wJ_A"
    ```
 
@@ -123,14 +124,13 @@
 | provider                      | string       | OAuth provider                                               | oidc              |
 | pass_authorization_header     | bool         | pass OIDC IDToken to upstream via Authorization Bearer header | true              |
 | oidc_issuer_url               | string       | the OpenID Connect issuer URL, e.g. `"https://dev-o43xb1mz7ya7ach4.us.auth0.com"` |                   |
-| oidc_verifier_request_timeout | uint32       | OIDC verifier discovery request timeout                      | 500(ms)           |
-| redeem_timeout                | uint32       | OIDC redeem token request timeout                            | 500(ms)           |
+| oidc_verifier_request_timeout | uint32       | OIDC verifier discovery request timeout                      | 2000(ms)          |
 | scope                         | string       | OAuth scope specification                                    |                   |
 | redirect_url                  | string       | the OAuth Redirect URL, e.g. `"https://internalapp.yourcompany.com/oauth2/callback"` |                   |
 | service_name                  | string       | registered name of the OIDC service, e.g. `auth.dns`, `keycloak.static` |                   |
 | service_port                  | int64        | service port of the OIDC service                             |                   |
 | service_host                  | string       | host of the OIDC service when type is static ip              |                   |
-| match_type                    | string       | match type (whitelist or blacklist)                          | `"whitelist"`     |
+| match_type                    | string       | match type (`whitelist` or `blacklist`)                      | `"whitelist"`     |
 | match_list                    | rule\|list   | a list of (match_rule_domain, match_rule_path, and match_rule_type). |                   |
 | match_rule_domain             | string       | match rule domain, support wildcard pattern such as `*.bar.com` |                   |
 | match_rule_path               | string       | match rule path such as `/headers`                           |                   |
@@ -142,9 +142,39 @@
 python -c 'import os,base64; print(base64.urlsafe_b64encode(os.urandom(32)).decode())'
 ```
 
+参考：[Oauth2-proxy Generating a Cookie Secret](https://oauth2-proxy.github.io/oauth2-proxy/configuration/overview#generating-a-cookie-secret)
+
+### 黑白名单模式
+
+支持黑白名单模式配置，默认为白名单模式，白名单为空，即所有请求都需要经过验证，匹配域名支持泛域名例如`*.bar.com`，匹配规则支持精确匹配`exact`，前缀匹配`prefix`，正则匹配`regex`
+
+#### 白名单模式
+
+```yaml
+match_type: 'whitelist'
+match_list:
+    - match_rule_domain: '*.bar.com'
+      match_rule_path: '/foo'
+      match_rule_type: 'prefix'
+```
+
+泛域名`*.bar.com`下前缀匹配`/foo`的请求无需验证
+
+#### 黑名单模式
+
+```yaml
+match_type: 'blacklist'
+match_list:
+    - match_rule_domain: '*.bar.com'
+      match_rule_path: '/headers'
+      match_rule_type: 'prefix'
+```
+
+只有泛域名`*.bar.com`下前缀匹配`/header`的请求需要验证
+
 ### 注销用户
 
-为了注销用户，需将他们重定向到`/oauth2/sign_out`这个端点。这个端点仅移除oauth2-proxy自己设置的cookie，也就是说，用户仍然在认证提供商那里保持登录状态，并且在再次访问应用时可能会自动重新登录。之后，您还需要使用`rd`查询参数将用户重定向到认证提供商的注销页面，即重定向用户到类似如下地址（注意URL编码！）：
+注销用户需重定向到`/oauth2/sign_out`这个端点。这个端点仅移除oauth2-proxy自己设置的cookie，也就是说，用户仍然在OIDC Provider处保持登录状态，并且在再次访问应用时可能会自动重新登录。因此还需要使用`rd`查询参数将用户重定向到认证提供商的注销页面，即重定向用户到类似如下地址（注意URL编码！）：
 
 ```
 /oauth2/sign_out?rd=https%3A%2F%2Fmy-oidc-provider.example.com%2Fsign_out_page
@@ -154,13 +184,11 @@ python -c 'import os,base64; print(base64.urlsafe_b64encode(os.urandom(32)).deco
 
 ```
 GET /oauth2/sign_out HTTP/1.1
-X-Auth-Request-Redirect: https://my-oidc-provider/sign_out_page
+X-Auth-Request-Redirect: https://my-oidc-provider.example.com/sign_out_page
 ...
 ```
 
-（如果您的OIDC提供商支持会话管理和发现，那么"sign_out_page"应该是从[metadata](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig)中获取的`end_session_endpoint`
-
-**注**：想要重定向到的域名（例如示例中的`my-oidc-provider.example.com`）必须添加到`whitelist_domains`配置选项中，否则重定向将会被忽略。确保包含实际的域名和端口，而不是完整的URL（例如，应使用"localhost:8081"而非"[http://localhost:8081](http://localhost:8081/)")。
+重定向URL中可以包含`post_logout_redirect_uri`参数指定OIDC Provider登出后跳转到的页面，例如后端服务的登出页面，不携带该参数则默认跳转到OIDC Provider的登出页面，详情见下方auth0和keycloak的示例（如果OIDC Provider支持会话管理和发现，那么"sign_out_page"应该是从[metadata](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig)中获取的`end_session_endpoint`）
 
 ### OIDC with auth0
 
@@ -210,17 +238,13 @@ client_id: 'YagFqRD9tfNIaac5BamjhsSatjrAnsnZ'
 client_secret: 'ekqv5XoZuMFtYms1NszEqRx03qct6BPvGeJUeptNG4y09PrY16BKT9IWezTrrhJJ'
 scope: 'openid email offline_access'
 cookie_secret: 'nqavJrGvRmQxWwGNptLdyUVKcBNZ2b18Guc1n_8DCfY='
-cookie_secure: false
 service_name: 'auth.dns'
 service_port: 443
-oidc_verifier_request_timeout: 2000
-whitelist_domains:
-    - 'dev-o43xb1mz7ya7ach4.us.auth0.com'
-match_type: 'blacklist'
+match_type: 'whitelist'
 match_list:
     - match_rule_domain: '*.bar.com'
-      match_rule_path: '/headers'
-      match_rule_type: 'exact'
+      match_rule_path: '/foo'
+      match_rule_type: 'prefix'
 ```
 
 **注**：必须先配置服务来源及oidc provider ingress，wasm插件在初始化时需要访问配置的服务获取openid-configuration
@@ -231,7 +255,9 @@ match_list:
 
 #### 登陆成功跳转到服务页面
 
-![auth0 result](https://gw.alicdn.com/imgextra/i1/O1CN01AtZ2cd1JlBxsgyCjG_!!6000000001068-0-tps-3840-2160.jpg)
+headers中可以看到携带了_oauth2_proxy 的cookie用于下次登陆访问，Authorization对应IDToken用于后端服务获得用户信息
+
+![auth0 result](https://img.alicdn.com/imgextra/i3/O1CN01hhRa4s1SIBQakFOAf_!!6000000002223-0-tps-3840-2160.jpg)
 
 #### 访问登出跳转到登出页面
 
@@ -239,7 +265,17 @@ match_list:
 http://foo.bar.com/oauth2/sign_out?rd=https%3A%2F%2Fdev-o43xb1mz7ya7ach4.us.auth0.com%2Foidc%2Flogout
 ```
 
-![auth0 result](https://gw.alicdn.com/imgextra/i4/O1CN01zOrOm828du4C4o97U_!!6000000007956-0-tps-3840-2160.jpg)
+![auth0 result](https://img.alicdn.com/imgextra/i3/O1CN01UntF4x1UqC4StMqtT_!!6000000002568-0-tps-3840-2160.jpg)
+
+#### 访问登出跳转到登出页面(携带post_logout_redirect_uri参数跳转指定uri)
+
+```
+http://foo.bar.com/oauth2/sign_out?rd=https%3A%2F%2Fdev-o43xb1mz7ya7ach4.us.auth0.com%2Foidc%2Flogout%3Fpost_logout_redirect_uri%3Dhttp%3A%2F%2Ffoo.bar.com%2Ffoo
+```
+
+注：post_logout_redirect_uri跳转的uri需要在OIDC Provider Allowed URLs处配置才可以正常跳转
+
+![auth0 result](https://gw.alicdn.com/imgextra/i1/O1CN01AtZ2cd1JlBxsgyCjG_!!6000000001068-0-tps-3840-2160.jpg)
 
 ### OIDC with keycloak
 
@@ -288,18 +324,14 @@ client_id: 'myclient'
 client_secret: 'PgSvuK7M4GYMPUaO0naQteKhpWYDpBYE'
 scope: 'openid email'
 cookie_secret: 'nqavJrGvRmQxWwGNptLdyUVKcBNZ2b18Guc1n_8DCfY='
-cookie_secure: false
 service_name: 'keycloak.static'
 service_port: 80
 service_host: '127.0.0.1:9090'
-oidc_verifier_request_timeout: 2000
-whitelist_domains:
-    - '127.0.0.1:9090'
 match_type: 'blacklist'
 match_list:
     - match_rule_domain: '*.bar.com'
       match_rule_path: '/headers'
-      match_rule_type: 'exact'
+      match_rule_type: 'prefix'
 ```
 
 #### 访问服务页面，未登陆的话进行跳转
@@ -308,7 +340,7 @@ match_list:
 
 #### 登陆成功跳转到服务页面
 
-![keycloak service](https://gw.alicdn.com/imgextra/i1/O1CN01AtZ2cd1JlBxsgyCjG_!!6000000001068-0-tps-3840-2160.jpg)
+![keycloak service](https://img.alicdn.com/imgextra/i3/O1CN01hhRa4s1SIBQakFOAf_!!6000000002223-0-tps-3840-2160.jpg)
 
 #### 访问登出跳转到登出页面
 
@@ -316,4 +348,12 @@ match_list:
 http://foo.bar.com/oauth2/sign_out?rd=http%3A%2F%2F127.0.0.1:9090%2Frealms%2Fmyrealm%2Fprotocol%2Fopenid-connect%2Flogout
 ```
 
-![auth0 result](https://gw.alicdn.com/imgextra/i4/O1CN01JzIAvo1CqxdypfnOH_!!6000000000133-0-tps-3840-2160.jpg)
+![auth0 result](https://img.alicdn.com/imgextra/i4/O1CN01kQwqB523OiroOWMgM_!!6000000007246-0-tps-3840-2160.jpg)
+
+#### 访问登出跳转到登出页面(携带post_logout_redirect_uri参数跳转指定uri)
+
+```
+http://foo.bar.com/oauth2/sign_out?rd=http%3A%2F%2F127.0.0.1:9090%2Frealms%2Fmyrealm%2Fprotocol%2Fopenid-connect%2Flogout%3Fpost_logout_redirect_uri%3Dhttp%3A%2F%2Ffoo.bar.com%2Ffoo
+```
+
+![keycloak service](https://gw.alicdn.com/imgextra/i1/O1CN01AtZ2cd1JlBxsgyCjG_!!6000000001068-0-tps-3840-2160.jpg)
