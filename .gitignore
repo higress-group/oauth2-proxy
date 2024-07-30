@@ -1,7 +1,6 @@
 .idea/*
 docker-compose.yaml
 envoy.yaml
-*.wasm
 .DS_Store
 **/.DS_Store
 .DS_Store?
