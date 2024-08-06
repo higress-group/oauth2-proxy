@@ -1,18 +1,17 @@
 # OIDC Wasm 插件
 
-### 简介
+## 简介
 
 本仓库提供了一个高度可集成的Wasm插件支持OpenID Connect（OIDC）身份认证，同时强化了对跨站请求伪造（CSRF）攻击的防御能力，支持OpenID Connect协议中的Logout Endpoint。在通过Wasm插件OIDC验证后的请求会携带 `Authorization`的标头对应ID Token。
 
-### OIDC 流程
-
-#### OIDC 流程图
+### OIDC 流程图
 
 <p align="center">
   <img src="https://gw.alicdn.com/imgextra/i4/O1CN01McjXP51EWT9dMxQm4_!!6000000000359-2-tps-1803-2018.png" alt="oidc_process" style="zoom: 33%;" />
 </p>
 
-#### OIDC 流程解析
+
+### OIDC 流程解析
 
 1. 模拟用户访问对应服务api
 
@@ -24,13 +23,13 @@
 
    ```shell
    curl --url "https://dev-o43xb1mz7ya7ach4.us.auth0.com/authorize"\
-     --data "approval_prompt=force" \
-     --data "client_id=YagFqRD9tfNIaac5BamjhsSatjrAnsnZ" \
-     --data "redirect_uri=http%3A%2F%2Ffoo.bar.com%2Foauth2%2Fcallback" \
-     --data "response_type=code" \
-     --data "scope=openid+email+offline_access" \
-     --data "state=nT06xdCqn4IqemzBRV5hmO73U_hCjskrH_VupPqdcdw%3A%2Ffoo" \
-      --header "Set-Cookie: _oauth2_proxy_csrf=LPruATEDgcdmelr8zScD_ObhsbP4zSzvcgmPlcNDcJpFJ0OvhxP2hFotsU-kZnYxd5KsIjzeIXGTOjf8TKcbTHbDIt-aQoZORXI_0id3qeY0Jt78223DPeJ1xBqa8VO0UiEOUFOR53FGxirJOdKFxaAvxDFb1Ok=|1718962455|V1QGWyjQ4hMNOQ4Jtf17HeQJdVqHdt5d65uraFduMIU=; Path=/; Expires=Fri, 21 Jun 2024 08:06:20 GMT; HttpOnly"
+     --url-query "approval_prompt=force" \
+     --url-query "client_id=YagFqRD9tfNIaac5BamjhsSatjrAnsnZ" \
+     --url-query "redirect_uri=http%3A%2F%2Ffoo.bar.com%2Foauth2%2Fcallback" \
+     --url-query "response_type=code" \
+     --url-query "scope=openid+email+offline_access" \
+     --url-query "state=nT06xdCqn4IqemzBRV5hmO73U_hCjskrH_VupPqdcdw%3A%2Ffoo" \
+     --header "Set-Cookie: _oauth2_proxy_csrf=LPruATEDgcdmelr8zScD_ObhsbP4zSzvcgmPlcNDcJpFJ0OvhxP2hFotsU-kZnYxd5KsIjzeIXGTOjf8TKcbTHbDIt-aQoZORXI_0id3qeY0Jt78223DPeJ1xBqa8VO0UiEOUFOR53FGxirJOdKFxaAvxDFb1Ok=|1718962455|V1QGWyjQ4hMNOQ4Jtf17HeQJdVqHdt5d65uraFduMIU=; Path=/; Expires=Fri, 21 Jun 2024 08:06:20 GMT; HttpOnly"
    ```
 
 3. 用户在登录页进行登录
@@ -41,8 +40,8 @@
 
    ```shell
    curl --url "http://foo.bar.com/oauth2/callback" \
-     --data "state=nT06xdCqn4IqemzBRV5hmO73U_hCjskrH_VupPqdcdw%3A%2Ffoo" \
-    --data "code=0bdopoS2c2lx95u7iO0OH9kY1TvaEdJHo4lB6CT2_qVFm"
+     --url-query "state=nT06xdCqn4IqemzBRV5hmO73U_hCjskrH_VupPqdcdw%3A%2Ffoo" \
+     --url-query "code=0bdopoS2c2lx95u7iO0OH9kY1TvaEdJHo4lB6CT2_qVFm"
    ```
 
 5. 利用授权交换id_token和access_token
@@ -83,7 +82,7 @@
 
    ```shell
    curl --url "foo.bar.com/headers"
-     --data "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imc1Z1ExSF9ZbTY0WUlvVkQwSVpXTCJ9.eyJlbWFpbCI6IjE2MDExNTYyNjhAcXEuY29tIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJpc3MiOiJodHRwczovL2Rldi1vNDN4YjFtejd5YTdhY2g0LnVzLmF1dGgwLmNvbS8iLCJhdWQiOiJZYWdGcVJEOXRmTklhYWM1QmFtamhzU2F0anJBbnNuWiIsImlhdCI6MTcxOTE5ODYzOCwiZXhwIjoxNzE5MjM0NjM4LCJzdWIiOiJhdXRoMHw2NjVkNzFlNzRjMTMxMTc3YmU2NmU2MDciLCJzaWQiOiJjdDJVOF9ZUS16VDdFOGkwRTNNeUstejc5ZGlWUWhhVSJ9.gfzXKJ0FeqzYqOUDLQHWcUG19IOLqkpLN09xTmIat0umrlGV5VNSumgWH3XJmmwnhdb8AThH3Jf-7kbRJzu4rM-BbGbFTRBTzNHeUajFOFrIgld5VENQ_M_sXHkTp0psWKSr9vF24kmilCfSbvC5lBKjt878ljZ7-xteWuaUYOMUdcJb4DSv0-zjX01sonJxYamTlhji3M4TAW7VwhwqyZt8dBhVSNaRw1wUKj-M1JrBDLyx65sroZtSqVA0udIrqMHEbWYb2de7JjzlqG003HRMzwOm7OXgEd5ZVFqgmBLosgixOU5DJ4A26nlqK92Sp6VqDMRvA-3ym8W_m-wJ_A"
+     --header "Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imc1Z1ExSF9ZbTY0WUlvVkQwSVpXTCJ9.eyJlbWFpbCI6IjE2MDExNTYyNjhAcXEuY29tIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJpc3MiOiJodHRwczovL2Rldi1vNDN4YjFtejd5YTdhY2g0LnVzLmF1dGgwLmNvbS8iLCJhdWQiOiJZYWdGcVJEOXRmTklhYWM1QmFtamhzU2F0anJBbnNuWiIsImlhdCI6MTcxOTE5ODYzOCwiZXhwIjoxNzE5MjM0NjM4LCJzdWIiOiJhdXRoMHw2NjVkNzFlNzRjMTMxMTc3YmU2NmU2MDciLCJzaWQiOiJjdDJVOF9ZUS16VDdFOGkwRTNNeUstejc5ZGlWUWhhVSJ9.gfzXKJ0FeqzYqOUDLQHWcUG19IOLqkpLN09xTmIat0umrlGV5VNSumgWH3XJmmwnhdb8AThH3Jf-7kbRJzu4rM-BbGbFTRBTzNHeUajFOFrIgld5VENQ_M_sXHkTp0psWKSr9vF24kmilCfSbvC5lBKjt878ljZ7-xteWuaUYOMUdcJb4DSv0-zjX01sonJxYamTlhji3M4TAW7VwhwqyZt8dBhVSNaRw1wUKj-M1JrBDLyx65sroZtSqVA0udIrqMHEbWYb2de7JjzlqG003HRMzwOm7OXgEd5ZVFqgmBLosgixOU5DJ4A26nlqK92Sp6VqDMRvA-3ym8W_m-wJ_A"
    ```
 
 8. 后端服务根据id_token获取用户信息并返回对应的Http响应
@@ -101,7 +100,9 @@
    }
    ```
 
-### 配置说明
+## 配置
+
+### 配置项
 
 | Option                        | Type         | Description                                                  | Default           |
 | ----------------------------- | ------------ | ------------------------------------------------------------ | ----------------- |
@@ -145,7 +146,7 @@ python -c 'import os,base64; print(base64.urlsafe_b64encode(os.urandom(32)).deco
 
 支持黑白名单模式配置，默认为白名单模式，白名单为空，即所有请求都需要经过验证，匹配域名支持泛域名例如`*.bar.com`，匹配规则支持精确匹配`exact`，前缀匹配`prefix`，正则匹配`regex`
 
-#### 白名单模式
+* **白名单模式**
 
 ```yaml
 match_type: 'whitelist'
@@ -157,7 +158,7 @@ match_list:
 
 泛域名`*.bar.com`下前缀匹配`/foo`的请求无需验证
 
-#### 黑名单模式
+* **黑名单模式**
 
 ```yaml
 match_type: 'blacklist'
@@ -187,20 +188,54 @@ X-Auth-Request-Redirect: https://my-oidc-provider.example.com/sign_out_page
 
 重定向URL中可以包含`post_logout_redirect_uri`参数指定OIDC Provider登出后跳转到的页面，例如后端服务的登出页面，不携带该参数则默认跳转到OIDC Provider的登出页面，详情见下方auth0和keycloak的示例（如果OIDC Provider支持会话管理和发现，那么"sign_out_page"应该是从[metadata](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig)中获取的`end_session_endpoint`）
 
-### OIDC with auth0
+### OIDC 服务 HTTPS 协议
 
-#### 配置 auth0 账户
+如果 OIDC Provider 为 HTTPS 协议，参考Higress中[配置后端服务协议：HTTPS](https://higress.io/docs/latest/user/annotation-use-case/#%E9%85%8D%E7%BD%AE%E5%90%8E%E7%AB%AF%E6%9C%8D%E5%8A%A1%E5%8D%8F%E8%AE%AEhttps%E6%88%96grpc)的说明需要通过使用注解`higress.io/backend-protocol: "HTTPS"`配置请求转发至后端服务使用HTTPS协议，参考Auth0示例中Ingress配置
+
+## 配置示例
+
+### Auth0 配置示例
+
+#### Step 1: 配置 Auth0 账户
 
 - 登录到开发人员 Okta 网站 [Developer Auth0 site](https://auth0.com/)
 - 注册测试 web 应用程序
 
-#### Higress 配置服务来源
+**注**：需填写Allowed Callback URLs, Allowed Logout URLs, Allowed Web Origins等配置项，否则 OIDC Provider 会认为用户跳转的重定向 URL 或登出 URL 无效
+
+#### Step 2: Higress 配置服务来源
 
 * 在Higress服务来源中创建auth0 DNS来源
 
 ![auth0 create](https://gw.alicdn.com/imgextra/i1/O1CN01p9y0jF1tfzdXTzNYm_!!6000000005930-0-tps-3362-670.jpg)
 
-#### Wasm 插件配置
+#### Step 3: OIDC 服务 HTTPS 配置
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth0-ingress
+  annotations:
+    higress.io/destination: auth.dns
+    higress.io/backend-protocol: "HTTPS"
+    higress.io/ignore-path-case: "false"
+spec:
+  ingressClassName: higress
+  rules:
+    - host: foo.bar.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              resource:
+                apiGroup: networking.higress.io
+                kind: McpBridge
+                name: default
+```
+
+#### Step 4: Wasm 插件配置
 
 ```yaml
 redirect_url: 'http://foo.bar.com/oauth2/callback'
@@ -248,19 +283,21 @@ http://foo.bar.com/oauth2/sign_out?rd=https%3A%2F%2Fdev-o43xb1mz7ya7ach4.us.auth
 
 ![auth0 logout redirect](https://gw.alicdn.com/imgextra/i1/O1CN01AtZ2cd1JlBxsgyCjG_!!6000000001068-0-tps-3840-2160.jpg)
 
-### OIDC with keycloak
+### keycloak 配置示例
 
-#### Get started with keycloak on docker
+#### Step 1: Get started with keycloak on docker
 
 <https://www.keycloak.org/getting-started/getting-started-docker> 
 
-#### Higress 配置服务来源
+**注**：需填写Valid redirect URIs, Valid post logout URIs, Web origins配置项，否则 OIDC Provider 会认为用户跳转的重定向 URL 或登出 URL 无效
+
+#### Step 2: Higress 配置服务来源
 
 * 在Higress服务来源中创建Keycloak固定地址服务
 
 ![keycloak create](https://gw.alicdn.com/imgextra/i1/O1CN01p9y0jF1tfzdXTzNYm_!!6000000005930-0-tps-3362-670.jpg)
 
-#### Wasm 插件配置
+#### Step 3: Wasm 插件配置
 
 ```yaml
 redirect_url: 'http://foo.bar.com/oauth2/callback'
