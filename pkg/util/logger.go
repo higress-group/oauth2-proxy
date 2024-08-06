@@ -14,5 +14,5 @@ func SendError(errMsg string, rw http.ResponseWriter, status int) {
 	if rw != nil {
 		rw.WriteHeader(status)
 	}
-	proxywasm.SendHttpResponse(uint32(status), nil, []byte(errMsg), -1)
+	proxywasm.SendHttpResponseWithDetail(uint32(status), errMsg, nil, []byte(http.StatusText(status)), -1)
 }

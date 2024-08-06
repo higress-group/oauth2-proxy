@@ -9,7 +9,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.0.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
-	github.com/higress-group/proxy-wasm-go-sdk v0.0.0-20240327114451-d6b7174a84fc
+	github.com/higress-group/proxy-wasm-go-sdk v0.0.0-20240711023527-ba358c48772f
 	github.com/justinas/alice v1.2.0
 	github.com/ohler55/ojg v1.22.0
 	github.com/spf13/cast v1.6.0

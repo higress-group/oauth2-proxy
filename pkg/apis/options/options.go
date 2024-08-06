@@ -43,7 +43,10 @@ type Options struct {
 func (o *Options) GetRedirectURL() *url.URL { return o.redirectURL }
 
 // Options for Setting internal values
-func (o *Options) SetRedirectURL(s *url.URL) { o.redirectURL = s }
+func (o *Options) SetRedirectURL(s *url.URL) {
+	o.redirectURL = s
+	o.MatchRules.RedirectURL = s
+}
 
 // NewOptions constructs a new Options with defaulted values
 func NewOptions() *Options {
@@ -54,8 +57,8 @@ func NewOptions() *Options {
 		Session:            sessionOptionsDefaults(),
 		SkipAuthPreflight:  false,
 		PassAuthorization:  true,
-		VerifierInterval:   30 * 24 * time.Hour, // 1 month
-		UpdateKeysInterval: 24 * time.Hour,      // 24 hours
+		VerifierInterval:   2 * time.Second, // 5 seconds
+		UpdateKeysInterval: 24 * time.Hour,  // 24 hours
 		MatchRules:         matchRulesDefaults(),
 	}
 }

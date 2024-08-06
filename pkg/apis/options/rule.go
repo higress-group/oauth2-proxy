@@ -1,6 +1,7 @@
 package options
 
 import (
+	"net/url"
 	"strings"
 
 	regexp "github.com/wasilibs/go-re2"
@@ -21,14 +22,16 @@ type Rule struct {
 }
 
 type MatchRules struct {
-	Mode     string `mapstructure:"match_type"`
-	RuleList []Rule `mapstructure:"match_list"`
+	Mode        string `mapstructure:"match_type"`
+	RuleList    []Rule `mapstructure:"match_list"`
+	RedirectURL *url.URL
 }
 
 func matchRulesDefaults() MatchRules {
 	return MatchRules{
-		Mode:     "whitelist",
-		RuleList: []Rule{},
+		Mode:        "whitelist",
+		RuleList:    []Rule{},
+		RedirectURL: &url.URL{},
 	}
 }
 
@@ -65,7 +68,7 @@ func matchDomainAndPath(domain, path string, rule Rule) bool {
 }
 
 func IsAllowedByMode(domain, path string, config MatchRules, proxyPrefix string) bool {
-	if strings.HasPrefix(path, proxyPrefix) {
+	if domain == config.RedirectURL.Host && strings.HasPrefix(path, proxyPrefix) {
 		return false
 	}
 	switch config.Mode {

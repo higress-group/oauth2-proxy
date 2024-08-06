@@ -61,31 +61,32 @@ func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
 		}
 	})
 
-	// wrapper.RegisteTickFunc(opts.UpdateKeysInterval.Milliseconds(), func() {
-	// 	if config.OidcHandler.provider.Data().Verifier != nil {
-	// 		(*config.OidcHandler.provider.Data().Verifier.GetKeySet()).UpdateKeys(oauthproxy.client, config.Options.Providers[0].OIDCConfig.VerifierRequestTimeout, func(args ...interface{}) {})
-	// 	}
-	// })
+	wrapper.RegisteTickFunc(opts.UpdateKeysInterval.Milliseconds(), func() {
+		if config.OidcHandler.provider.Data().Verifier != nil {
+			(*config.OidcHandler.provider.Data().Verifier.GetKeySet()).UpdateKeys(oauthproxy.client, config.Options.Providers[0].OIDCConfig.VerifierRequestTimeout, func(args ...interface{}) {})
+		}
+	})
 	return nil
 }
 
 func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrapper.Log) types.Action {
+	config.OidcHandler.Ctx = ctx
+	req := getHttpRequest()
+	rw := util.NewRecorder()
+	if options.IsAllowedByMode(req.URL.Host, req.URL.Path, config.Options.MatchRules, config.Options.ProxyPrefix) {
+		util.Logger.Infof("request is allowed by mode %s", config.Options.MatchRules.Mode)
+		return types.ActionContinue
+	}
+
+	// TODO: remove this verifier after envoy support send request during parseConfig
 	if err := validateVerifier(config.OidcHandler); err != nil {
 		util.SendError(err.Error(), nil, http.StatusInternalServerError)
 		return types.ActionContinue
-	} else {
-		config.OidcHandler.Ctx = ctx
-		req := getHttpRequest()
-		rw := util.NewRecorder()
-		if options.IsAllowedByMode(req.URL.Host, req.URL.Path, config.Options.MatchRules, config.Options.ProxyPrefix) {
-			util.Logger.Infof("request is allowed by mode %s", config.Options.MatchRules.Mode)
-			return types.ActionContinue
-		} else {
-			config.OidcHandler.serveMux.ServeHTTP(rw, req)
-			if code := rw.GetStatus(); code != 0 {
-				return types.ActionContinue
-			}
-		}
+	}
+
+	config.OidcHandler.serveMux.ServeHTTP(rw, req)
+	if code := rw.GetStatus(); code != 0 {
+		return types.ActionContinue
 	}
 	return types.ActionPause
 }

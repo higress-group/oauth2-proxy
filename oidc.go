@@ -422,8 +422,8 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 	case errors.Is(err, ErrAccessDenied):
 		if cookies, ok := rw.Header()[SetCookieHeader]; ok && len(cookies) > 0 {
 			newCookieValue := strings.Join(cookies, ",")
-			responseHeaders := [][2]string{{SetCookieHeader, newCookieValue}}
-			proxywasm.SendHttpResponse(http.StatusForbidden, responseHeaders, []byte("The session failed authorization checks. clear the cookie"), -1)
+			errorMsg := "The session failed authorization checks. clear the cookie"
+			proxywasm.SendHttpResponseWithDetail(http.StatusForbidden, errorMsg, [][2]string{{SetCookieHeader, newCookieValue}}, []byte(http.StatusText(http.StatusForbidden)), -1)
 		} else {
 			util.SendError("The session failed authorization checks", rw, http.StatusForbidden)
 		}
