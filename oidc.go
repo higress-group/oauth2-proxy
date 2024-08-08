@@ -1,4 +1,4 @@
-package main
+package oidc
 
 import (
 	"encoding/base64"
@@ -501,6 +501,16 @@ func (p *OAuthProxy) ValidateVerifier() error {
 
 func (p *OAuthProxy) SetContext(ctx wrapper.HttpContext) {
 	p.ctx = ctx
+}
+
+func (p *OAuthProxy) SetVerifier(opts *options.Options) {
+	if p.provider.Data().Verifier == nil {
+		providers.NewVerifierFromConfig(opts.Providers[0], p.provider.Data(), p.client)
+	}
+}
+
+func (p *OAuthProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	p.serveMux.ServeHTTP(w, req)
 }
 
 // See https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching?hl=en
