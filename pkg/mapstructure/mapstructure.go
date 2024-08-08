@@ -453,6 +453,15 @@ func (d *Decoder) decode(name string, input interface{}, outVal reflect.Value) e
 		return nil
 	}
 
+	// if d.config.DecodeHook != nil {
+	// 	// We have a DecodeHook, so let's pre-process the input.
+	// 	var err error
+	// 	input, err = DecodeHookExec(d.config.DecodeHook, inputVal, outVal)
+	// 	if err != nil {
+	// 		return fmt.Errorf("error decoding '%s': %w", name, err)
+	// 	}
+	// }
+	// TODO: remove this StringToTimeDurationHookFunc to DecodeHookExec after tinygo support reflection features
 	stringToTimeDuration := StringToTimeDurationHookFunc()
 	input, err := stringToTimeDuration(inputVal.Type(), outVal.Type(), inputVal.Interface())
 	if err != nil {
@@ -1078,6 +1087,7 @@ func (d *Decoder) decodeSlice(name string, data interface{}, val reflect.Value) 
 	valElemType := valType.Elem()
 
 	// sliceType := reflect.SliceOf(valElemType)
+	// TODO: remove this StringToTimeDurationHookFunc to DecodeHookExec after tinygo support reflection features
 	// tinygo to wasm compile not support reflect.SliceOf() function
 	// So only support slice type of []string decode
 	sliceType := reflect.TypeOf([]string(nil))
