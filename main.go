@@ -1,14 +1,15 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+
 	"oidc/pkg/apis/options"
 	"oidc/pkg/util"
 	"oidc/pkg/validation"
 	"oidc/providers"
+
 	"strings"
 
 	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
@@ -30,14 +31,15 @@ func main() {
 	)
 }
 
+var oidcHandler *OAuthProxy
+
 type OidcConfig struct {
-	Options     *options.Options
-	OidcHandler *OAuthProxy
+	options *options.Options
 }
 
 // 在控制台插件配置中填写的yaml配置会自动转换为json，此处直接从json这个参数里解析配置即可
 func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
-	util.Logger = &log
+	SetLogger(log)
 	opts, err := options.LoadOptions(json)
 	if err != nil {
 		return err
@@ -47,44 +49,38 @@ func parseConfig(json gjson.Result, config *OidcConfig, log wrapper.Log) error {
 		return err
 	}
 
-	config.Options = opts
-	validator := func(string) bool { return true }
-	oauthproxy, err := NewOAuthProxy(opts, validator)
+	config.options = opts
+
+	oauthproxy, err := NewOAuthProxy(opts)
 	if err != nil {
 		return err
 	}
-	config.OidcHandler = oauthproxy
+	oidcHandler = oauthproxy
 
 	wrapper.RegisteTickFunc(opts.VerifierInterval.Milliseconds(), func() {
-		if config.OidcHandler.provider.Data().Verifier == nil {
-			providers.NewVerifierFromConfig(config.Options.Providers[0], config.OidcHandler.provider.Data(), config.OidcHandler.client)
-		}
-	})
-
-	wrapper.RegisteTickFunc(opts.UpdateKeysInterval.Milliseconds(), func() {
-		if config.OidcHandler.provider.Data().Verifier != nil {
-			(*config.OidcHandler.provider.Data().Verifier.GetKeySet()).UpdateKeys(oauthproxy.client, config.Options.Providers[0].OIDCConfig.VerifierRequestTimeout, func(args ...interface{}) {})
+		if oidcHandler.provider.Data().Verifier == nil {
+			providers.NewVerifierFromConfig(config.options.Providers[0], oidcHandler.provider.Data(), oidcHandler.client)
 		}
 	})
 	return nil
 }
 
 func onHttpRequestHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrapper.Log) types.Action {
-	config.OidcHandler.Ctx = ctx
+	oidcHandler.SetContext(ctx)
 	req := getHttpRequest()
 	rw := util.NewRecorder()
-	if options.IsAllowedByMode(req.URL.Host, req.URL.Path, config.Options.MatchRules, config.Options.ProxyPrefix) {
-		util.Logger.Infof("request is allowed by mode %s", config.Options.MatchRules.Mode)
+	if options.IsAllowedByMode(req.URL.Host, req.URL.Path, config.options.MatchRules, config.options.ProxyPrefix) {
+		log.Infof("request is allowed by mode %s", config.options.MatchRules.Mode)
 		return types.ActionContinue
 	}
 
 	// TODO: remove this verifier after envoy support send request during parseConfig
-	if err := validateVerifier(config.OidcHandler); err != nil {
-		util.SendError(err.Error(), nil, http.StatusInternalServerError)
+	if err := oidcHandler.ValidateVerifier(); err != nil {
+		log.Critical(err.Error())
 		return types.ActionContinue
 	}
 
-	config.OidcHandler.serveMux.ServeHTTP(rw, req)
+	oidcHandler.serveMux.ServeHTTP(rw, req)
 	if code := rw.GetStatus(); code != 0 {
 		return types.ActionContinue
 	}
@@ -96,15 +92,8 @@ func onHttpResponseHeaders(ctx wrapper.HttpContext, config OidcConfig, log wrapp
 	if value != nil {
 		proxywasm.AddHttpResponseHeader(SetCookieHeader, value.(string))
 	}
-	config.OidcHandler.Ctx = nil
+	oidcHandler.SetContext(nil)
 	return types.ActionContinue
-}
-
-func validateVerifier(OidcHandler *OAuthProxy) error {
-	if OidcHandler.provider.Data().Verifier == nil {
-		return errors.New("Failed to obtain OpenID configuration. (There may be an error in the service configuration of the OIDC provider)")
-	}
-	return nil
 }
 
 func getHttpRequest() *http.Request {

@@ -48,8 +48,8 @@ var (
 // OAuthProxy is the main authentication proxy
 type OAuthProxy struct {
 	CookieOptions *options.Cookie
-	Validator     func(string) bool
-	Ctx           wrapper.HttpContext
+	validator     func(string) bool
+	ctx           wrapper.HttpContext
 
 	redirectURL         *url.URL // the url to receive requests at
 	relativeRedirectURL bool
@@ -73,7 +73,7 @@ type OAuthProxy struct {
 }
 
 // NewOAuthProxy creates a new instance of OAuthProxy from the options provided
-func NewOAuthProxy(opts *options.Options, validator func(string) bool) (*OAuthProxy, error) {
+func NewOAuthProxy(opts *options.Options) (*OAuthProxy, error) {
 	sessionStore, err := sessions.NewSessionStore(&opts.Session, &opts.Cookie)
 	if err != nil {
 		return nil, fmt.Errorf("error initialising session store: %v", err)
@@ -113,9 +113,12 @@ func NewOAuthProxy(opts *options.Options, validator func(string) bool) (*OAuthPr
 		Validator:   redirectValidator,
 	})
 
+	// TODO: Support Email Validation
+	validator := func(string) bool { return true }
+
 	p := &OAuthProxy{
 		CookieOptions: &opts.Cookie,
-		Validator:     validator,
+		validator:     validator,
 
 		ProxyPrefix:         opts.ProxyPrefix,
 		provider:            provider,
@@ -138,6 +141,10 @@ func NewOAuthProxy(opts *options.Options, validator func(string) bool) (*OAuthPr
 	p.buildServeMux(opts.ProxyPrefix)
 
 	return p, nil
+}
+
+func SetLogger(log wrapper.Log) {
+	util.Logger = &log
 }
 
 func (p *OAuthProxy) buildServeMux(proxyPrefix string) {
@@ -364,7 +371,7 @@ func (p *OAuthProxy) OAuthCallback(rw http.ResponseWriter, req *http.Request) {
 			if err != nil {
 				util.Logger.Errorf("Error with authorization: %v", err)
 			}
-			if p.Validator(session.Email) && authorized {
+			if p.validator(session.Email) && authorized {
 				util.Logger.Infof("Authenticated successfully via OAuth2: %s", session)
 				err := p.SaveSession(rw, req, session)
 				if err != nil {
@@ -402,11 +409,15 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 		}
 		if cookies, ok := rw.Header()[SetCookieHeader]; ok && len(cookies) > 0 {
 			newCookieValue := strings.Join(cookies, ",")
-			p.Ctx.SetContext(SetCookieHeader, newCookieValue)
-			modifyRequestCookie(req, p.CookieOptions.Name, newCookieValue)
-			util.Logger.Infof("Authentication and session refresh successfully .")
+			if p.ctx != nil {
+				p.ctx.SetContext(SetCookieHeader, newCookieValue)
+				modifyRequestCookie(req, p.CookieOptions.Name, newCookieValue)
+				util.Logger.Info("Authentication and session refresh successfully .")
+			} else {
+				util.Logger.Error("Set Cookie failed cause HttpContext is nil.")
+			}
 		} else {
-			util.Logger.Infof("Authentication successfully.")
+			util.Logger.Info("Authentication successfully.")
 		}
 	case errors.Is(err, ErrNeedsLogin):
 		// we need to send the user to a login screen
@@ -414,7 +425,7 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 			util.SendError("No valid authentication in request. Access Denied.", rw, http.StatusUnauthorized)
 			return
 		}
-		util.Logger.Infof("No valid authentication in request. Initiating login.")
+		util.Logger.Info("No valid authentication in request. Initiating login.")
 		// start OAuth flow, but only with the default login URL params - do not
 		// consider this request's query params as potential overrides, since
 		// the user did not explicitly start the login flow
@@ -450,7 +461,7 @@ func (p *OAuthProxy) getAuthenticatedSession(rw http.ResponseWriter, req *http.R
 		return nil, ErrNeedsLogin
 	}
 
-	invalidEmail := session.Email != "" && !p.Validator(session.Email)
+	invalidEmail := session.Email != "" && !p.validator(session.Email)
 	authorized, err := p.provider.Authorize(req.Context(), session)
 	if err != nil {
 		util.Logger.Errorf("Error with authorization: %v", err)
@@ -477,6 +488,17 @@ func (p *OAuthProxy) getAuthenticatedSession(rw http.ResponseWriter, req *http.R
 func (p *OAuthProxy) IsAllowedRequest(req *http.Request) bool {
 	isPreflightRequestAllowed := p.skipAuthPreflight && req.Method == "OPTIONS"
 	return isPreflightRequestAllowed
+}
+
+func (p *OAuthProxy) ValidateVerifier() error {
+	if p.provider.Data().Verifier == nil {
+		return errors.New("Failed to obtain OpenID configuration, current OIDC plugin is not working properly.")
+	}
+	return nil
+}
+
+func (p *OAuthProxy) SetContext(ctx wrapper.HttpContext) {
+	p.ctx = ctx
 }
 
 // See https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching?hl=en

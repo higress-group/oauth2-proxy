@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"oidc/pkg/apis/options"
+	"oidc/pkg/util"
 
 	requestutil "oidc/pkg/requests/util"
 )
@@ -18,10 +19,10 @@ func MakeCookieFromOptions(req *http.Request, name string, value string, opts *o
 	domain := GetCookieDomain(req, opts.Domains)
 	// If nothing matches, create the cookie with the shortest domain
 	if domain == "" && len(opts.Domains) > 0 {
-		// logger.Errorf("Warning: request host %q did not match any of the specific cookie domains of %q",
-		// 	requestutil.GetRequestHost(req),
-		// 	strings.Join(opts.Domains, ","),
-		// )
+		util.Logger.Errorf("Warning: request host %q did not match any of the specific cookie domains of %q",
+			requestutil.GetRequestHost(req),
+			strings.Join(opts.Domains, ","),
+		)
 		domain = opts.Domains[len(opts.Domains)-1]
 	}
 
@@ -84,6 +85,6 @@ func warnInvalidDomain(c *http.Cookie, req *http.Request) {
 		host = h
 	}
 	if !strings.HasSuffix(host, c.Domain) {
-		// logger.Errorf("Warning: request host is %q but using configured cookie domain of %q", host, c.Domain)
+		util.Logger.Errorf("Warning: request host is %q but using configured cookie domain of %q", host, c.Domain)
 	}
 }
