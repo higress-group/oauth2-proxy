@@ -1,24 +1,29 @@
-package options
+package oidc
 
 import (
 	"fmt"
 
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/options"
 	"github.com/Jing-ze/oauth2-proxy/pkg/mapstructure"
+	"github.com/Jing-ze/oauth2-proxy/pkg/validation"
 
 	"github.com/tidwall/gjson"
 )
 
-func LoadOptions(json gjson.Result) (*Options, error) {
+func LoadOptions(json gjson.Result) (*options.Options, error) {
 	input := gjsonToResultMap(json)
 	opts, err := loadLegacyOptions(input)
+	if err = validation.Validate(opts); err != nil {
+		return opts, err
+	}
 	return opts, err
 }
 
 // loadLegacyOptions loads the old toml options using the legacy flag set
 // and legacy options struct.
-func loadLegacyOptions(input map[string]interface{}) (*Options, error) {
+func loadLegacyOptions(input map[string]interface{}) (*options.Options, error) {
 
-	legacyOpts := NewLegacyOptions()
+	legacyOpts := options.NewLegacyOptions()
 
 	err := mapstructure.Decode(input, &legacyOpts)
 	if err != nil {
