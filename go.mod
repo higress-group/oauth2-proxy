@@ -1,4 +1,4 @@
-module oidc
+module github.com/Jing-ze/oauth2-proxy
 
 go 1.19
 

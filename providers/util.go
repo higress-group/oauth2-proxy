@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	pkgutil "oidc/pkg/util"
+
+	pkgutil "github.com/Jing-ze/oauth2-proxy/pkg/util"
 )
 
 const (

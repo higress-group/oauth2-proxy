@@ -3,7 +3,8 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"oidc/pkg/apis/sessions"
+
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/sessions"
 )
 
 type scopeKey string

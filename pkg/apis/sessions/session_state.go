@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"encoding/json"
-	"oidc/pkg/clock"
-	"oidc/pkg/encryption"
+
+	"github.com/Jing-ze/oauth2-proxy/pkg/clock"
+	"github.com/Jing-ze/oauth2-proxy/pkg/encryption"
 )
 
 // // SessionState is used to store information about the currently authenticated user session

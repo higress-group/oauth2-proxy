@@ -9,13 +9,13 @@ import (
 	"regexp"
 	"strings"
 
-	"oidc/pkg/apis/options"
-	"oidc/pkg/apis/sessions"
-	"oidc/pkg/middleware"
-	oidc "oidc/pkg/providers/go_oidc"
-	internaloidc "oidc/pkg/providers/oidc"
-	"oidc/pkg/providers/util"
-	pkgutil "oidc/pkg/util"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/options"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/sessions"
+	"github.com/Jing-ze/oauth2-proxy/pkg/middleware"
+	oidc "github.com/Jing-ze/oauth2-proxy/pkg/providers/go_oidc"
+	internaloidc "github.com/Jing-ze/oauth2-proxy/pkg/providers/oidc"
+	"github.com/Jing-ze/oauth2-proxy/pkg/providers/util"
+	pkgutil "github.com/Jing-ze/oauth2-proxy/pkg/util"
 )
 
 const (

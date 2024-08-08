@@ -3,7 +3,7 @@ package options
 import (
 	"fmt"
 
-	"oidc/pkg/mapstructure"
+	"github.com/Jing-ze/oauth2-proxy/pkg/mapstructure"
 
 	"github.com/tidwall/gjson"
 )

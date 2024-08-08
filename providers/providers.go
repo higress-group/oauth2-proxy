@@ -8,11 +8,11 @@ import (
 	"net/url"
 	"strings"
 
-	"oidc/pkg/apis/options"
-	"oidc/pkg/apis/sessions"
-	internaloidc "oidc/pkg/providers/oidc"
-	"oidc/pkg/providers/util"
-	pkgutil "oidc/pkg/util"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/options"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/sessions"
+	internaloidc "github.com/Jing-ze/oauth2-proxy/pkg/providers/oidc"
+	"github.com/Jing-ze/oauth2-proxy/pkg/providers/util"
+	pkgutil "github.com/Jing-ze/oauth2-proxy/pkg/util"
 
 	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 )

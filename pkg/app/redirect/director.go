@@ -3,8 +3,9 @@ package redirect
 import (
 	"fmt"
 	"net/http"
-	"oidc/pkg/util"
 	"strings"
+
+	"github.com/Jing-ze/oauth2-proxy/pkg/util"
 )
 
 // AppDirector is responsible for determining where OAuth2 Proxy should redirect

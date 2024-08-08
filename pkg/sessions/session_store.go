@@ -3,9 +3,9 @@ package sessions
 import (
 	"fmt"
 
-	"oidc/pkg/apis/options"
-	"oidc/pkg/apis/sessions"
-	"oidc/pkg/sessions/cookie"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/options"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/sessions"
+	"github.com/Jing-ze/oauth2-proxy/pkg/sessions/cookie"
 )
 
 // NewSessionStore creates a SessionStore from the provided configuration

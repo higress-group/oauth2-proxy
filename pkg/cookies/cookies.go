@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"oidc/pkg/apis/options"
-	"oidc/pkg/util"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/options"
+	"github.com/Jing-ze/oauth2-proxy/pkg/util"
 
-	requestutil "oidc/pkg/requests/util"
+	requestutil "github.com/Jing-ze/oauth2-proxy/pkg/requests/util"
 )
 
 // MakeCookieFromOptions constructs a cookie based on the given *options.CookieOptions,

@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"strings"
 
-	"oidc/pkg/apis/options"
-	"oidc/pkg/util"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/options"
+	"github.com/Jing-ze/oauth2-proxy/pkg/util"
 )
 
 // Validate checks that required options are set and validates those that they

@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"net/url"
 
-	"oidc/pkg/apis/options"
-	"oidc/pkg/util"
-	"oidc/pkg/validation"
-	"oidc/providers"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/options"
+	"github.com/Jing-ze/oauth2-proxy/pkg/util"
+	"github.com/Jing-ze/oauth2-proxy/pkg/validation"
+	"github.com/Jing-ze/oauth2-proxy/providers"
 
 	"strings"
 

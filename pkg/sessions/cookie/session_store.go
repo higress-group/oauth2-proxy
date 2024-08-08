@@ -8,10 +8,10 @@ import (
 	"regexp"
 	"time"
 
-	"oidc/pkg/apis/options"
-	"oidc/pkg/apis/sessions"
-	pkgcookies "oidc/pkg/cookies"
-	"oidc/pkg/encryption"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/options"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/sessions"
+	pkgcookies "github.com/Jing-ze/oauth2-proxy/pkg/cookies"
+	"github.com/Jing-ze/oauth2-proxy/pkg/encryption"
 )
 
 const (

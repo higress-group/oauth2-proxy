@@ -2,7 +2,8 @@ package util
 
 import (
 	"net/http"
-	middlewareapi "oidc/pkg/apis/middleware"
+
+	middlewareapi "github.com/Jing-ze/oauth2-proxy/pkg/apis/middleware"
 )
 
 const (

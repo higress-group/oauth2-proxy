@@ -2,9 +2,10 @@ package redirect
 
 import (
 	"net/url"
-	"oidc/pkg/util"
 	"regexp"
 	"strings"
+
+	"github.com/Jing-ze/oauth2-proxy/pkg/util"
 )
 
 var (

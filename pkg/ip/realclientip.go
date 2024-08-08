@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	ipapi "oidc/pkg/apis/ip"
+	ipapi "github.com/Jing-ze/oauth2-proxy/pkg/apis/ip"
 )
 
 func GetRealClientIPParser(headerKey string) (ipapi.RealClientIPParser, error) {

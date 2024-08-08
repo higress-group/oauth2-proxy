@@ -6,12 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	"oidc/pkg/apis/options"
-	"oidc/pkg/apis/sessions"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/options"
+	"github.com/Jing-ze/oauth2-proxy/pkg/apis/sessions"
 
 	"encoding/json"
-	"oidc/pkg/clock"
-	"oidc/pkg/encryption"
+
+	"github.com/Jing-ze/oauth2-proxy/pkg/clock"
+	"github.com/Jing-ze/oauth2-proxy/pkg/encryption"
 )
 
 // CSRF manages various nonces stored in the CSRF cookie during the initial
