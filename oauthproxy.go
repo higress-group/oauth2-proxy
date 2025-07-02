@@ -22,9 +22,10 @@ import (
 
 	middlewareapi "github.com/higress-group/oauth2-proxy/pkg/apis/middleware"
 
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 	"github.com/gorilla/mux"
 	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
+	logs "github.com/higress-group/wasm-go/pkg/log"
+	"github.com/higress-group/wasm-go/pkg/wrapper"
 	"github.com/justinas/alice"
 )
 
@@ -157,7 +158,7 @@ func NewOAuthProxy(opts *options.Options) (*OAuthProxy, error) {
 	return p, nil
 }
 
-func SetLogger(log wrapper.Log) {
+func SetLogger(log logs.Log) {
 	util.Logger = log
 }
 

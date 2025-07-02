@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 	"github.com/higress-group/oauth2-proxy/pkg/apis/sessions"
 	"github.com/higress-group/oauth2-proxy/pkg/util"
+	"github.com/higress-group/wasm-go/pkg/wrapper"
 )
 
 type AliyunProvider struct {

@@ -3,7 +3,7 @@ package options
 import (
 	"errors"
 
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
+	"github.com/higress-group/wasm-go/pkg/wrapper"
 )
 
 // Cookie contains configuration options relating to Service configuration

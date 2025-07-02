@@ -2,9 +2,8 @@ package options
 
 import (
 	"net/url"
+	"regexp"
 	"strings"
-
-	regexp "github.com/wasilibs/go-re2"
 )
 
 type RuleType string

@@ -13,8 +13,8 @@ import (
 
 	oidc "github.com/higress-group/oauth2-proxy/pkg/providers/go_oidc"
 
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
+	"github.com/higress-group/wasm-go/pkg/wrapper"
 	"github.com/justinas/alice"
 )
 
