@@ -28,8 +28,8 @@ import (
 
 	"github.com/higress-group/oauth2-proxy/pkg/util"
 
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 	"github.com/go-jose/go-jose/v4"
+	"github.com/higress-group/wasm-go/pkg/wrapper"
 )
 
 // StaticKeySet is a verifier that validates JWT against a static set of public keys.

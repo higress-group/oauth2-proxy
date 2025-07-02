@@ -3,11 +3,11 @@ package util
 import (
 	"net/http"
 
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
+	logs "github.com/higress-group/wasm-go/pkg/log"
 )
 
-var Logger wrapper.Log
+var Logger logs.Log
 
 func SendError(errMsg string, rw http.ResponseWriter, status int) {
 	Logger.Errorf(errMsg)

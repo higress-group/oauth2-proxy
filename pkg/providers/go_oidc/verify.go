@@ -24,8 +24,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 	"github.com/go-jose/go-jose/v4"
+	"github.com/higress-group/wasm-go/pkg/wrapper"
 )
 
 const (

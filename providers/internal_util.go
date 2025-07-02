@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 	"github.com/higress-group/oauth2-proxy/pkg/util"
+	"github.com/higress-group/wasm-go/pkg/wrapper"
 )
 
 // stripToken is a helper function to obfuscate "access_token"
