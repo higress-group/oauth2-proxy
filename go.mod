@@ -17,7 +17,6 @@ require (
 	github.com/ohler55/ojg v1.22.0
 	github.com/spf13/cast v1.7.0
 	github.com/tidwall/gjson v1.18.0
-	github.com/wasilibs/go-re2 v1.6.0
 	golang.org/x/crypto v0.26.0
 	golang.org/x/oauth2 v0.20.0
 )
@@ -28,7 +27,6 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/tetratelabs/wazero v1.7.2 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/resp v0.1.1 // indirect
