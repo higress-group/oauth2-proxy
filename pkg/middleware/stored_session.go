@@ -208,11 +208,15 @@ func needsRefresh(refreshPeriod time.Duration, session *sessionsapi.SessionState
 func (s *StoredSessionLoader) refreshSession(rw http.ResponseWriter, req *http.Request, session *sessionsapi.SessionState, callback func(args ...interface{})) error {
 	refreshedCallBack := func(args ...interface{}) {
 		session := args[0].(*sessionsapi.SessionState)
-		session.CreatedAtNow()
-		// Because the session was refreshed, make sure to save it
-		err := s.store.Save(rw, req, session)
-		if err != nil {
-			util.Logger.Errorf("error saving session: %v", err)
+		if session != nil {
+			session.CreatedAtNow()
+			// Because the session was refreshed, make sure to save it
+			err := s.store.Save(rw, req, session)
+			if err != nil {
+				util.Logger.Errorf("error saving session: %v", err)
+			}
+		} else {
+			util.Logger.Warnf("session is nil, not saving")
 		}
 	}
 	combinedCallBack := util.Combine(refreshedCallBack, callback)

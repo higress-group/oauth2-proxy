@@ -121,7 +121,7 @@ func (p *AliyunProvider) redeemRefreshToken(ctx context.Context, s *sessions.Ses
 		token, err := util.UnmarshalToken(responseHeaders, responseBody)
 		if err != nil {
 			util.Logger.Errorf("unable to unmarshal token: %v", err)
-			callback(nil, false)
+			callback((*sessions.SessionState)(nil), false)
 			return
 		}
 		s.AccessToken = token.AccessToken
