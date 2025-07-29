@@ -120,7 +120,8 @@ func (p *AliyunProvider) redeemRefreshToken(ctx context.Context, s *sessions.Ses
 	client.Post(p.RedeemURL.String(), headers, []byte(params.Encode()), func(statusCode int, responseHeaders http.Header, responseBody []byte) {
 		token, err := util.UnmarshalToken(responseHeaders, responseBody)
 		if err != nil {
-			util.SendError(err.Error(), nil, http.StatusInternalServerError)
+			util.Logger.Errorf("unable to unmarshal token: %v", err)
+			callback((*sessions.SessionState)(nil), false)
 			return
 		}
 		s.AccessToken = token.AccessToken
