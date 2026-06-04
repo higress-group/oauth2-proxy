@@ -150,7 +150,10 @@ func (r *RemoteKeySet) UpdateKeys(client wrapper.HttpClient, timeout uint32, cal
 			util.Logger.Errorf("RemoteKeySet UpdateKeys http call failed, status: %d", statusCode)
 			return
 		}
-		json.Unmarshal(responseBody, &keySet)
+		if err := json.Unmarshal(responseBody, &keySet); err != nil {
+			util.Logger.Errorf("RemoteKeySet UpdateKeys failed to unmarshal jwks response: %v", err)
+			return
+		}
 		r.cachedKeys = keySet.Keys
 		callback(true)
 	}, timeout)

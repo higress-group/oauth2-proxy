@@ -71,8 +71,15 @@ func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, cli
 				pkgutil.Logger.Errorf("openid-configuration http call failed, status: %d", statusCode)
 				return
 			}
-			json.Unmarshal(responseBody, &providerJson)
-			pv, _ := internaloidc.NewProviderVerifier(context.TODO(), verifierOptions, providerJson)
+			if err := json.Unmarshal(responseBody, &providerJson); err != nil {
+				pkgutil.Logger.Errorf("failed to unmarshal openid-configuration response: %v", err)
+				return
+			}
+			pv, err := internaloidc.NewProviderVerifier(context.TODO(), verifierOptions, providerJson)
+			if err != nil {
+				pkgutil.Logger.Errorf("failed to create provider verifier: %v", err)
+				return
+			}
 			p.Verifier = pv.Verifier()
 			if pv.DiscoveryEnabled() {
 				// Use the discovered values rather than any specified values
