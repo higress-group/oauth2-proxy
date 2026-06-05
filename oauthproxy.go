@@ -466,9 +466,8 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 			util.Logger.Debug("X-Forwarded-Access-Token header add access token")
 		}
 		if cookies, ok := rw.Header()[SetCookieHeader]; ok && len(cookies) > 0 {
-			newCookieValue := strings.Join(cookies, ",")
 			if p.ctx != nil {
-				p.ctx.SetContext(SetCookieHeader, newCookieValue)
+				p.ctx.SetContext(SetCookieHeader, cookies)
 				util.Logger.Info("Authentication and session refresh successfully .")
 			} else {
 				util.Logger.Error("Set Cookie failed cause HttpContext is nil.")
@@ -490,9 +489,12 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 	case errors.Is(err, ErrAccessDenied):
 		util.Logger.Debug("Access denied due to authorization checks")
 		if cookies, ok := rw.Header()[SetCookieHeader]; ok && len(cookies) > 0 {
-			newCookieValue := strings.Join(cookies, ",")
 			errorMsg := "The session failed authorization checks. clear the cookie"
-			proxywasm.SendHttpResponseWithDetail(http.StatusForbidden, errorMsg, [][2]string{{SetCookieHeader, newCookieValue}}, []byte(http.StatusText(http.StatusForbidden)), -1)
+			headers := make([][2]string, len(cookies))
+			for i, c := range cookies {
+				headers[i] = [2]string{SetCookieHeader, c}
+			}
+			proxywasm.SendHttpResponseWithDetail(http.StatusForbidden, errorMsg, headers, []byte(http.StatusText(http.StatusForbidden)), -1)
 		} else {
 			util.SendError("The session failed authorization checks", rw, http.StatusForbidden)
 		}
