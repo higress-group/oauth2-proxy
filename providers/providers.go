@@ -64,23 +64,28 @@ func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, cli
 			SkipIssuerVerification: providerConfig.OIDCConfig.InsecureSkipIssuerVerification,
 		}
 
-		var providerJson internaloidc.ProviderJSON
-		requestURL := strings.TrimSuffix(verifierOptions.IssuerURL, "/") + "/.well-known/openid-configuration"
-		client.Get(requestURL, nil, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
-			if statusCode != http.StatusOK {
-				pkgutil.Logger.Errorf("openid-configuration http call failed, status: %d", statusCode)
-				return
-			}
-			if err := json.Unmarshal(responseBody, &providerJson); err != nil {
-				pkgutil.Logger.Errorf("failed to unmarshal openid-configuration response: %v", err)
-				return
-			}
+		// applyVerifier installs the verifier (and any discovered endpoints) onto
+		// p. Used by both the discovery path (after fetching openid-configuration)
+		// and the skip-discovery path (which constructs the verifier directly).
+		// Returns an error if the verifier could not be constructed so callers
+		// don't proceed onto code that dereferences p.Verifier.
+		applyVerifier := func(providerJson internaloidc.ProviderJSON) error {
 			pv, err := internaloidc.NewProviderVerifier(context.TODO(), verifierOptions, providerJson)
 			if err != nil {
 				pkgutil.Logger.Errorf("failed to create provider verifier: %v", err)
-				return
+				return err
 			}
-			p.Verifier = pv.Verifier()
+			verifier := pv.Verifier()
+			if verifier == nil {
+				pkgutil.Logger.Errorf("created provider verifier is nil")
+				return fmt.Errorf("provider verifier is nil")
+			}
+			keySet := verifier.GetKeySet()
+			if keySet == nil {
+				pkgutil.Logger.Errorf("provider verifier key set is nil")
+				return fmt.Errorf("provider verifier key set is nil")
+			}
+			p.Verifier = verifier
 			if pv.DiscoveryEnabled() {
 				// Use the discovered values rather than any specified values
 				endpoints := pv.Provider().Endpoints()
@@ -92,8 +97,34 @@ func NewVerifierFromConfig(providerConfig options.Provider, p *ProviderData, cli
 				p.SupportedCodeChallengeMethods = pkce.CodeChallengeAlgs
 			}
 			providerConfigInfoCheck(providerConfig, p)
-			(*p.Verifier.GetKeySet()).UpdateKeys(client, providerConfig.OIDCConfig.VerifierRequestTimeout, func(args ...interface{}) {})
-			p.StoredSession.RemoteKeySet = p.Verifier.GetKeySet()
+			(*keySet).UpdateKeys(client, providerConfig.OIDCConfig.VerifierRequestTimeout, func(args ...interface{}) {})
+			p.StoredSession.RemoteKeySet = keySet
+			return nil
+		}
+
+		// skip_oidc_discovery: when the user has manually supplied the JWKS URL
+		// (and optionally login/redeem URLs), do NOT hit /.well-known/openid-configuration.
+		// Previously the discovery http_call ran unconditionally and, on failure,
+		// returned early without ever installing a verifier — so the plugin was
+		// unusable in environments where the issuer endpoint is unreachable even
+		// though `skip_oidc_discovery: true` was set. See higress #3941.
+		if verifierOptions.SkipDiscovery {
+			applyVerifier(internaloidc.ProviderJSON{})
+			return nil
+		}
+
+		var providerJson internaloidc.ProviderJSON
+		requestURL := strings.TrimSuffix(verifierOptions.IssuerURL, "/") + "/.well-known/openid-configuration"
+		client.Get(requestURL, nil, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
+			if statusCode != http.StatusOK {
+				pkgutil.Logger.Errorf("openid-configuration http call failed, status: %d", statusCode)
+				return
+			}
+			if err := json.Unmarshal(responseBody, &providerJson); err != nil {
+				pkgutil.Logger.Errorf("failed to unmarshal openid-configuration response: %v", err)
+				return
+			}
+			applyVerifier(providerJson)
 		}, providerConfig.OIDCConfig.VerifierRequestTimeout)
 		return nil
 	}
